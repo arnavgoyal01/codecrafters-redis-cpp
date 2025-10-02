@@ -51,10 +51,19 @@ int main(int argc, char **argv) {
   std::cout << "Logs from your program will appear here!\n";
 
   // Uncomment this block to pass the first stage
-  // 
-  int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
+  //
+	char buffer[256];
+	int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
+	int n = read(client_fd, buffer, 256);
+	if (n < 0) std::cerr << "Error reading input" << std::endl;
 	std::string response = "+PONG\r\n"; 
-	int n = send(client_fd, response.c_str(), response.size(),0);
+	for (int i = 0; i < sizeof(buffer) - 3; i++)
+	{
+		if (buffer[i] == 'P')
+		{	
+			n = send(client_fd, response.c_str(), response.size(),0);
+		}
+	}
 	if (n < 0) std::cerr << "Error sending response" << std::endl; 
   std::cout << "Client connected\n";
  
