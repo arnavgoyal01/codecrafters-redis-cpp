@@ -1,12 +1,15 @@
+#include <cstdio>
 #include <iostream>
 #include <cstdlib>
 #include <string>
 #include <cstring>
+#include <strings.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <string>
 
 int main(int argc, char **argv) {
   // Flush after every std::cout / std::cerr
@@ -54,19 +57,26 @@ int main(int argc, char **argv) {
   //
 	char buffer[256];
 	int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
-	int n = read(client_fd, buffer, 256);
-	if (n < 0) std::cerr << "Error reading input" << std::endl;
-	std::string response = "+PONG\r\n"; 
-	for (int i = 0; i < sizeof(buffer) - 3; i++)
-	{
-		if (buffer[i] == 'P')
-		{	
-			n = send(client_fd, response.c_str(), response.size(),0);
-		}
-	}
-	if (n < 0) std::cerr << "Error sending response" << std::endl; 
   std::cout << "Client connected\n";
- 
+	int n = 1; 
+	while (n > 0)
+	{
+		bzero(buffer, 256);
+		int n = recv(client_fd, buffer, 256, 0);
+		if (n < 0) std::cerr << "Error reading input" << std::endl;
+		std::string response = "+PONG\r\n";
+		std::string input = buffer;
+
+		for (int i = 0; i < input.size(); i++)
+		{
+			//send(client_fd, response.c_str(), response.size(),0);	
+			if (input[i] == 'P')
+			{	
+				send(client_fd, response.c_str(), response.size(),0);
+			}
+		}
+		if (n < 0) std::cerr << "Error sending response" << std::endl; 
+	}
 	close(client_fd);
   close(server_fd);
 
