@@ -72,13 +72,12 @@ int main(int argc, char **argv)
 		FD_ZERO(&masterfds); 
 		FD_SET(server_fd, &masterfds);
 		maxfd = server_fd; 	
-
 		for (auto cfd : clientfds)
 		{	
 			FD_SET(cfd, &masterfds);
 			if (cfd > maxfd) maxfd = cfd; 
 		}	
-
+		
 		int activity = select(maxfd + 1, &masterfds, NULL, NULL, NULL); 
 		if (activity < 0) 
 		{
@@ -118,6 +117,14 @@ int main(int argc, char **argv)
 			if (FD_ISSET(clientfds[i], &masterfds))
 			{
 				int num_bytes = recv(clientfds[i], buffer, sizeof(buffer) - 1, 0);
+				if (num_bytes == 0)
+				{
+					close(clientfds[i]);
+					std::cout << "Disconnected " << clientfds[i] << "\n"; 
+					clientfds.erase(clientfds.begin() + i); 
+					i--;
+					continue;
+				}
 				input = buffer; 
 				std::vector<std::string> tokens; 
 				size_t start = 0; 
@@ -129,9 +136,14 @@ int main(int argc, char **argv)
 					end = input.find("\n", start); 
 				}
 				tokens.push_back(input.substr(start)); 
-				for (auto token : tokens) std::cout << token << "\n"; 
-
-				response = "+PONG\r\n";				
+				if (tokens[2] == "PING\r")
+				{
+					response = "+PONG\r\n";	
+				} else 
+				{
+					response = tokens[3] + "\n" + tokens[4] + "\n";
+				}
+						
 				int m = send(clientfds[i],
 									 response.c_str(),
 									 response.size(), 0);
@@ -139,12 +151,6 @@ int main(int argc, char **argv)
 				{
 					std::cerr << "Error in send\n"; 
 					std::printf("Socket error code %d\n", errno); 
-				}
-				if (num_bytes == 0)
-				{
-					close(clientfds[i]);
-					clientfds.erase(clientfds.begin() + i); 
-					i--; 
 				}
 			} 
 			i++;
