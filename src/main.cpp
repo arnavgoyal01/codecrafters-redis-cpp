@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstddef>
 #include <cstdio>
 #include <iostream>
 #include <cstdlib>
@@ -107,7 +108,7 @@ int main(int argc, char **argv)
 
 		char buffer[256];
 		bzero(buffer, 256);
-		std::string response = "+PONG\r\n";
+		std::string response;
 		std::string input;
 		int n; 
 		int i = 0; 
@@ -117,7 +118,20 @@ int main(int argc, char **argv)
 			if (FD_ISSET(clientfds[i], &masterfds))
 			{
 				int num_bytes = recv(clientfds[i], buffer, sizeof(buffer) - 1, 0);
-				std::cout << num_bytes << "\n"; 
+				input = buffer; 
+				std::vector<std::string> tokens; 
+				size_t start = 0; 
+				size_t end = input.find("\n",start); 
+				while (end != std::string::npos)
+				{
+					tokens.push_back(input.substr(start,end - start));
+					start = end + 1; 
+					end = input.find("\n", start); 
+				}
+				tokens.push_back(input.substr(start)); 
+				for (auto token : tokens) std::cout << token << "\n"; 
+
+				response = "+PONG\r\n";				
 				int m = send(clientfds[i],
 									 response.c_str(),
 									 response.size(), 0);
