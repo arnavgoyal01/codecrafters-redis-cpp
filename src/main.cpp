@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 #include <iostream>
 #include <cstdlib>
@@ -10,22 +11,31 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string>
+#include <sys/select.h>
+#include <vector>
 
-int main(int argc, char **argv) {
+void getStuff(int); 
+
+int main(int argc, char **argv) 
+{
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
   
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server_fd < 0) {
+  if (server_fd < 0) 
+	{
    std::cerr << "Failed to create server socket\n";
    return 1;
   }
   
-  // Since the tester restarts your program quite often, setting SO_REUSEADDR
+  // Since the tester restarts your program quite often,
+	// setting SO_REUSEADDR
   // ensures that we don't run into 'Address already in use' errors
   int reuse = 1;
-  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse,
+								 sizeof(reuse)) < 0) 
+	{
     std::cerr << "setsockopt failed\n";
     return 1;
   }
@@ -35,29 +45,124 @@ int main(int argc, char **argv) {
   server_addr.sin_addr.s_addr = INADDR_ANY;
   server_addr.sin_port = htons(6379);
   
-  if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
+  if (bind(server_fd, (struct sockaddr *) &server_addr,
+					 sizeof(server_addr)) != 0) 
+	{
     std::cerr << "Failed to bind to port 6379\n";
     return 1;
   }
   
-  int connection_backlog = 5;
-  if (listen(server_fd, connection_backlog) != 0) {
+	int connection_backlog = 5;
+  if (listen(server_fd, connection_backlog) != 0) 
+	{
     std::cerr << "listen failed\n";
     return 1;
   }
   
-  struct sockaddr_in client_addr;
-  int client_addr_len = sizeof(client_addr);
-  std::cout << "Waiting for a client to connect...\n";
+	fd_set masterfds, writefds;
+	int maxfd;
+	std::vector<int> clientfds; 		
+	std::cout << "Waiting for a client to connect...\n";
+		
+	while (true)
+	{
+		FD_ZERO(&masterfds); 
+		FD_SET(server_fd, &masterfds);
+		FD_SET(server_fd, &writefds); 
+		maxfd = server_fd; 	
 
-  // You can use print statements as follows for debugging, they'll be visible when running tests.
-  std::cout << "Logs from your program will appear here!\n";
+		for (auto cfd : clientfds)
+		{	
+			FD_SET(cfd, &masterfds);
+			FD_SET(cfd, &writefds);
+			maxfd = std::max(maxfd, cfd); 
+		}		
 
-  // Uncomment this block to pass the first stage
-  //
+		int activity = select(maxfd + 1, &masterfds, &writefds, NULL, NULL); 
+		if (activity < 0) 
+		{
+			std::cerr << "select error\n"; 
+			continue; 
+		}
+		
+		if (FD_ISSET(server_fd, &masterfds))
+		{
+			struct sockaddr_in client_addr;
+			int client_addr_len = sizeof(client_addr);
+			int client_fd1 = accept(server_fd,
+													 (struct sockaddr *) &client_addr,
+														(socklen_t *) &client_addr_len);
+			
+			std::cout << "Client fd1: " <<  client_fd1 << "\n"; 	
+			if (client_fd1 < 0) 
+			{
+				std::cerr << "client 1 accept failed\n";
+				continue;
+			}
+			clientfds.push_back(client_fd1);	
+			std::cout << "Added new client to set "<< client_fd1 << "\n";
+		}
+
+		char buffer[256];
+		std::string response = "+PONG\r\n";
+		std::string input;
+		int n; 
+
+		for (int i = 0; i < clientfds.size(); i++)
+		{ 
+			if (FD_ISSET(clientfds[i], &masterfds))
+			{
+				bzero(buffer, 256);
+				n = recv(clientfds[i], buffer, 256, 0);
+				if (n < 0) std::cerr << "Error reading input" << std::endl;
+				// std::printf(buffer);
+				input = buffer;
+				
+				for (int i = 0; i < input.size(); i++)
+				{
+					//send(client_fd, response.c_str(), response.size(),0);	
+					if (input[i] == 'P')
+					{	
+						std::cout << "Detected P\n"; 
+						int m = send(clientfds[i],
+									 response.c_str(),
+									 response.size(), 0);
+						if (m < 0) std::cerr << "Error in send\n"; 
+						std::cout << "Send " << m << "\n"; 
+					}
+				}			
+			}
+			/*
+			if (FD_ISSET(clientfds[i], &writefds))
+			{
+				for (int i = 0; i < input.size(); i++)
+				{
+					//send(client_fd, response.c_str(), response.size(),0);	
+					if (input[i] == 'P')
+					{	
+						std::cout << "Detected P\n"; 
+						int m = send(clientfds[i],
+									 response.c_str(),
+									 response.size(), 0);
+						if (m < 0) std::cerr << "Error in send\n"; 
+						std::cout << "Send " << m << "\n"; 
+					}
+				} 
+			}
+			*/ 
+		}		
+	}
+
+	std::cout << "Passed through\n";
+	close(server_fd);
+
+  return 0;
+}
+
+void getStuff(int client_fd)
+{
+
 	char buffer[256];
-	int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
-  std::cout << "Client connected\n";
 	int n = 1; 
 	while (n > 0)
 	{
@@ -78,7 +183,4 @@ int main(int argc, char **argv) {
 		if (n < 0) std::cerr << "Error sending response" << std::endl; 
 	}
 	close(client_fd);
-  close(server_fd);
-
-  return 0;
 }
