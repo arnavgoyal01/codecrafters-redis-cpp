@@ -13,6 +13,7 @@
 #include <string>
 #include <sys/select.h>
 #include <vector>
+#include <errno.h>
 
 void getStuff(int); 
 
@@ -63,26 +64,27 @@ int main(int argc, char **argv)
 	int maxfd;
 	std::vector<int> clientfds; 		
 	std::cout << "Waiting for a client to connect...\n";
-		
+	int c = 0; 
+
 	while (true)
 	{
 		FD_ZERO(&masterfds); 
 		FD_SET(server_fd, &masterfds);
-		FD_SET(server_fd, &writefds); 
 		maxfd = server_fd; 	
 
 		for (auto cfd : clientfds)
 		{	
 			FD_SET(cfd, &masterfds);
-			FD_SET(cfd, &writefds);
-			maxfd = std::max(maxfd, cfd); 
-		}		
+			if (cfd > maxfd) maxfd = cfd; 
+		}	
 
-		int activity = select(maxfd + 1, &masterfds, &writefds, NULL, NULL); 
+		int activity = select(maxfd + 1, &masterfds, NULL, NULL, NULL); 
 		if (activity < 0) 
 		{
 			std::cerr << "select error\n"; 
-			continue; 
+			std::cout << "Error code: " <<  errno << " Num of client fds " << clientfds.size() << "\n"; 
+			for (auto cfd : clientfds) std::cout << cfd;
+			break; 
 		}
 		
 		if (FD_ISSET(server_fd, &masterfds))
@@ -104,56 +106,39 @@ int main(int argc, char **argv)
 		}
 
 		char buffer[256];
+		bzero(buffer, 256);
 		std::string response = "+PONG\r\n";
 		std::string input;
 		int n; 
+		int i = 0; 
 
-		for (int i = 0; i < clientfds.size(); i++)
+		while (i < clientfds.size())
 		{ 
 			if (FD_ISSET(clientfds[i], &masterfds))
 			{
-				bzero(buffer, 256);
-				n = recv(clientfds[i], buffer, 256, 0);
-				if (n < 0) std::cerr << "Error reading input" << std::endl;
-				// std::printf(buffer);
-				input = buffer;
-				
-				for (int i = 0; i < input.size(); i++)
-				{
-					//send(client_fd, response.c_str(), response.size(),0);	
-					if (input[i] == 'P')
-					{	
-						std::cout << "Detected P\n"; 
-						int m = send(clientfds[i],
+				int num_bytes = recv(clientfds[i], buffer, sizeof(buffer) - 1, 0);
+				std::cout << num_bytes << "\n"; 
+				int m = send(clientfds[i],
 									 response.c_str(),
 									 response.size(), 0);
-						if (m < 0) std::cerr << "Error in send\n"; 
-						std::cout << "Send " << m << "\n"; 
-					}
-				}			
-			}
-			/*
-			if (FD_ISSET(clientfds[i], &writefds))
-			{
-				for (int i = 0; i < input.size(); i++)
+				if (m < 0) 
 				{
-					//send(client_fd, response.c_str(), response.size(),0);	
-					if (input[i] == 'P')
-					{	
-						std::cout << "Detected P\n"; 
-						int m = send(clientfds[i],
-									 response.c_str(),
-									 response.size(), 0);
-						if (m < 0) std::cerr << "Error in send\n"; 
-						std::cout << "Send " << m << "\n"; 
-					}
-				} 
-			}
-			*/ 
+					std::cerr << "Error in send\n"; 
+					std::printf("Socket error code %d\n", errno); 
+				}
+				if (num_bytes == 0)
+				{
+					close(clientfds[i]);
+					clientfds.erase(clientfds.begin() + i); 
+					i--; 
+				}
+			} 
+			i++;
 		}		
 	}
 
 	std::cout << "Passed through\n";
+	clientfds.clear();
 	close(server_fd);
 
   return 0;
