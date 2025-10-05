@@ -13,8 +13,10 @@
 #include <netdb.h>
 #include <string>
 #include <sys/select.h>
+#include <utility>
 #include <vector>
 #include <errno.h>
+#include <map>
 
 void getStuff(int); 
 
@@ -66,7 +68,8 @@ int main(int argc, char **argv)
 	std::vector<int> clientfds; 		
 	std::cout << "Waiting for a client to connect...\n";
 	int c = 0; 
-
+	std::map<std::string, std::string> dict;	
+	
 	while (true)
 	{
 		FD_ZERO(&masterfds); 
@@ -104,7 +107,7 @@ int main(int argc, char **argv)
 			clientfds.push_back(client_fd1);	
 			std::cout << "Added new client to set "<< client_fd1 << "\n";
 		}
-
+ 
 		char buffer[256];
 		bzero(buffer, 256);
 		std::string response;
@@ -128,20 +131,38 @@ int main(int argc, char **argv)
 				input = buffer; 
 				std::vector<std::string> tokens; 
 				size_t start = 0; 
-				size_t end = input.find("\n",start); 
+				size_t end = input.find("$",start); 
 				while (end != std::string::npos)
 				{
 					tokens.push_back(input.substr(start,end - start));
 					start = end + 1; 
-					end = input.find("\n", start); 
+					end = input.find("$", start); 
 				}
 				tokens.push_back(input.substr(start)); 
-				if (tokens[2] == "PING\r")
+				
+				if (tokens[1] == "4\r\nPING\r\n")
 				{
 					response = "+PONG\r\n";	
-				} else 
+				} 
+				else if (tokens[1] == "4\r\nECHO\r\n") 
 				{
-					response = tokens[3] + "\n" + tokens[4] + "\n";
+					response = "$" + tokens[2];
+				} 
+				else if (tokens[1] == "3\r\nSET\r\n")
+				{
+					std::pair<std::string, std::string> pairi =
+						{ tokens[2], tokens[3] };
+					auto ret = dict.insert(pairi);
+					if (ret.second == false)
+					{
+						std::cout << "Element already exists\n"; 
+					}
+					response = "+OK\r\n"; 
+				} 
+				else
+				{
+					std::cout << dict.empty() << "\n";
+					response = "$" + dict[tokens[2]];
 				}
 						
 				int m = send(clientfds[i],
@@ -164,28 +185,3 @@ int main(int argc, char **argv)
   return 0;
 }
 
-void getStuff(int client_fd)
-{
-
-	char buffer[256];
-	int n = 1; 
-	while (n > 0)
-	{
-		bzero(buffer, 256);
-		int n = recv(client_fd, buffer, 256, 0);
-		if (n < 0) std::cerr << "Error reading input" << std::endl;
-		std::string response = "+PONG\r\n";
-		std::string input = buffer;
-
-		for (int i = 0; i < input.size(); i++)
-		{
-			//send(client_fd, response.c_str(), response.size(),0);	
-			if (input[i] == 'P')
-			{	
-				send(client_fd, response.c_str(), response.size(),0);
-			}
-		}
-		if (n < 0) std::cerr << "Error sending response" << std::endl; 
-	}
-	close(client_fd);
-}
