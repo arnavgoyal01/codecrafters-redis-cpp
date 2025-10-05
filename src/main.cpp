@@ -17,6 +17,7 @@
 #include <vector>
 #include <errno.h>
 #include <map>
+#include <chrono>
 
 void getStuff(int); 
 
@@ -69,7 +70,8 @@ int main(int argc, char **argv)
 	std::cout << "Waiting for a client to connect...\n";
 	int c = 0; 
 	std::map<std::string, std::string> dict;	
-	
+	std::map<std::string,std::chrono::system_clock::time_point> times; 
+
 	while (true)
 	{
 		FD_ZERO(&masterfds); 
@@ -152,17 +154,46 @@ int main(int argc, char **argv)
 				{
 					std::pair<std::string, std::string> pairi =
 						{ tokens[2], tokens[3] };
+					
 					auto ret = dict.insert(pairi);
+					
 					if (ret.second == false)
 					{
 						std::cout << "Element already exists\n"; 
 					}
+					
+					if (tokens.size() > 4)
+					{
+						size_t p1 = tokens[5].find("\r\n",0);
+						int length = std::stoi(tokens[5].substr(0,p1));
+						int duration = std::stoi(tokens[5].substr(p1 + 2, length)); 
+						if (tokens[4] == "2\r\nEX\r\n") duration *= 1000;
+
+						std::chrono::milliseconds t(duration); 
+
+						std::chrono::system_clock::time_point time_limit
+							= std::chrono::system_clock::now() + t;
+
+						times.insert(std::pair<std::string,std::chrono::system_clock::time_point>(tokens[2],time_limit));
+					}
+
 					response = "+OK\r\n"; 
 				} 
 				else
 				{
-					std::cout << dict.empty() << "\n";
 					response = "$" + dict[tokens[2]];
+					auto it = times.find(tokens[2]); 
+					if (it != times.end())
+					{
+						auto now = std::chrono::system_clock::now(); 
+						if (it->second <= now)
+						{
+							std::cout << "Able to detect expiry\n";
+							dict.erase(tokens[2]);
+							times.erase(it); 
+							response = "$-1\r\n";
+						}
+					}
 				}
 						
 				int m = send(clientfds[i],
@@ -175,7 +206,8 @@ int main(int argc, char **argv)
 				}
 			} 
 			i++;
-		}		
+		}
+		
 	}
 
 	std::cout << "Passed through\n";
