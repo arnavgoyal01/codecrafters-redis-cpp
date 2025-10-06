@@ -250,9 +250,23 @@ void Server::LPOP()
 	{
 		if (it->second.size() != 0)
 		{
-			response = "$" + it->second[0]; 
+			int i = 1; 
+			response = ""; 
+			if (tokens.size() > 3)
+			{
+				int st = tokens[3].find("\r\n",0) + 2; 
+				int ed = tokens[3].find("\r\n", st); 
+				i = std::stoi(tokens[3].substr(st, ed - st));	
+				if (i > it->second.size()) i = it->second.size(); 
+				response += "*" + std::to_string(i) + "\r\n";
+			}
+
+			for (int j = 0; j < i; j++)
+			{
+				response += "$" + it->second[j]; 
+			}
 			it->second.erase(it->second.begin(),
-										it->second.begin() + 1); 
+										it->second.begin() + i); 
 		}
 		else 
 		{
