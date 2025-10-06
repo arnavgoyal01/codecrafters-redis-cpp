@@ -137,21 +137,25 @@ void Server::getValue()
 
 void Server::listPush()
 {
-	int n; 
-
-	auto it = lists.find(tokens[2]); 
-	if (it != lists.end())
+	int n;
+	int i = 1; 
+	while (2 + i < tokens.size())
 	{
-		it->second.push_back(tokens[3]); 
-		n = it->second.size();
-	}
-	else
-	{
-		lists.insert(
-			std::pair<std::string, std::vector<std::string>>
-			(tokens[2], std::vector<std::string>{ tokens[3] })
-		);
-		n = 1; 
+		auto it = lists.find(tokens[2]); 
+		if (it != lists.end())
+		{
+			it->second.push_back(tokens[2 + i]); 
+			n = it->second.size();
+		}
+		else
+		{
+			lists.insert(
+				std::pair<std::string, std::vector<std::string>>
+				(tokens[2], std::vector<std::string>{ tokens[2 + i] })
+			);
+			n = 1; 
+		}
+		i++; 
 	}
 	response = ":" + std::to_string(n) + "\r\n";
 }
