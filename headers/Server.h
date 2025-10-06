@@ -77,5 +77,7 @@ public:
 
 	void getLength();
 
+	void LPOP();
+
 	void loop(); 
 };

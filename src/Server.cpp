@@ -243,6 +243,28 @@ void Server::getLength()
 	}
 }
 
+void Server::LPOP()
+{
+	auto it = lists.find(tokens[2]); 
+	if (it != lists.end())
+	{
+		if (it->second.size() != 0)
+		{
+			response = "$" + it->second[0]; 
+			it->second.erase(it->second.begin(),
+										it->second.begin() + 1); 
+		}
+		else 
+		{
+			response = "$-1\r\n";		
+		}
+	}
+	else 
+	{
+		response = "$-1\r\n"; 
+	}
+}
+
 void Server::commandCenter()
 {
 	if (tokens[1] == "4\r\nPING\r\n")
@@ -274,7 +296,11 @@ void Server::commandCenter()
 	} else if (tokens[1] == "4\r\nLLEN\r\n")
 	{
 		getLength();
+	} else if (tokens[1] == "4\r\nLPOP\r\n")
+	{
+		LPOP();
 	}
+
 
 }
 
