@@ -173,6 +173,12 @@ void Server::lrange()
 		ed = tokens[4].find("\r\n", st); 
 		int stop = std::stoi(tokens[4].substr(st, ed - st));
 
+		if (start < 0) start += it->second.size();
+		if (stop < 0) stop += it->second.size(); 
+
+		if (start < 0) start = 0;
+		if (stop < 0) stop = 0; 
+
 		if (start >= it->second.size())
 		{
 			response = "*0\r\n"; 
