@@ -228,6 +228,21 @@ void Server::lrange()
 	}
 }
 
+void Server::getLength()
+{
+	auto it = lists.find(tokens[2]); 
+	if (it != lists.end())
+	{
+		response = ":"
+			+ std::to_string(it->second.size())
+			+ "\r\n";
+	}
+	else 
+	{
+		response = ":0\r\n"; 
+	}
+}
+
 void Server::commandCenter()
 {
 	if (tokens[1] == "4\r\nPING\r\n")
@@ -256,7 +271,11 @@ void Server::commandCenter()
 	} else if (tokens[1] == "5\r\nLPUSH\r\n")
 	{
 		listPushLeft();
+	} else if (tokens[1] == "4\r\nLLEN\r\n")
+	{
+		getLength();
 	}
+
 }
 
 void Server::getInput()

@@ -75,5 +75,7 @@ public:
 
 	void lrange();
 
+	void getLength();
+
 	void loop(); 
 };
