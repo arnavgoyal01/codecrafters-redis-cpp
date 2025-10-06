@@ -71,6 +71,8 @@ public:
 
 	void listPush();
 
+	void listPushLeft();
+
 	void lrange();
 
 	void loop(); 

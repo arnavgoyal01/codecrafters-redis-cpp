@@ -160,6 +160,31 @@ void Server::listPush()
 	response = ":" + std::to_string(n) + "\r\n";
 }
 
+void Server::listPushLeft()
+{
+	int n;
+	int i = 1; 
+	while (2 + i < tokens.size())
+	{
+		auto it = lists.find(tokens[2]); 
+		if (it != lists.end())
+		{
+			it->second.insert(it->second.begin(), tokens[2 + i]); 
+			n = it->second.size();
+		}
+		else
+		{
+			lists.insert(
+				std::pair<std::string, std::vector<std::string>>
+				(tokens[2], std::vector<std::string>{ tokens[2 + i] })
+			);
+			n = 1; 
+		}
+		i++; 
+	}
+	response = ":" + std::to_string(n) + "\r\n";
+}
+
 void Server::lrange()
 {
 	auto it = lists.find(tokens[2]); 
@@ -228,6 +253,9 @@ void Server::commandCenter()
 	else if (tokens[1] == "6\r\nLRANGE\r\n")
 	{
 		lrange(); 
+	} else if (tokens[1] == "5\r\nLPUSH\r\n")
+	{
+		listPushLeft();
 	}
 }
 
