@@ -160,6 +160,43 @@ void Server::listPush()
 	response = ":" + std::to_string(n) + "\r\n";
 }
 
+void Server::lrange()
+{
+	auto it = lists.find(tokens[2]); 
+	if (it != lists.end())
+	{
+		int st = tokens[3].find("\r\n",0) + 2; 
+		int ed = tokens[3].find("\r\n", st); 
+		int start = std::stoi(tokens[3].substr(st, ed - st)); 
+		
+		st = tokens[4].find("\r\n",0) + 2; 
+		ed = tokens[4].find("\r\n", st); 
+		int stop = std::stoi(tokens[4].substr(st, ed - st));
+
+		if (start >= it->second.size())
+		{
+			response = "*0\r\n"; 
+		}
+		else 
+		{
+			if (stop >= it->second.size()) stop= it->second.size()-1;			
+			if (start > stop) response = "*0\r\n"; 
+			else 
+			{
+				response = "*" + std::to_string(stop-start+1) + "\r\n";
+				for (int i = start; i <= stop; i++)
+				{
+					response += "$" + it->second[i];
+				}
+			}
+		}
+	}
+	else 
+	{
+		response = "*0\r\n"; 
+	}
+}
+
 void Server::commandCenter()
 {
 	if (tokens[1] == "4\r\nPING\r\n")
@@ -181,6 +218,10 @@ void Server::commandCenter()
 	else if (tokens[1] == "5\r\nRPUSH\r\n")
 	{
 		listPush();
+	}
+	else if (tokens[1] == "6\r\nLRANGE\r\n")
+	{
+		lrange(); 
 	}
 }
 
