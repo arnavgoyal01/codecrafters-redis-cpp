@@ -36,7 +36,7 @@ private:
 
 	char buffer[256];
 	
-	std::string response = "x";
+	std::string response;
 	
 	std::string input;
 
@@ -64,7 +64,7 @@ public:
 
 	int getFD(); 
 
-	bool reInit(); 
+	int reInit(); 
 
 	void getClients(); 
 
@@ -96,7 +96,5 @@ public:
 
 	void controller();
 
-	void unblockWatch(); 
-
-	void loop(std::chrono::system_clock::time_point n); 
+	void loop(); 
 };

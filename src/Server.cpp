@@ -47,7 +47,7 @@ int Server::getFD()
 	return server_fd;
 }
 
-bool Server::reInit()
+int Server::reInit()
 {
 	FD_ZERO(&masterfds); 
 	FD_SET(server_fd, &masterfds);
@@ -67,7 +67,7 @@ bool Server::reInit()
 			errno << " Num of client fds " <<
 			clientfds.size() << "\n";  
 	}
-	return (activity < 0); 
+	return activity; 
 }
 
 void Server::getClients()
@@ -294,9 +294,9 @@ bool Server::BLPOP(int cfd)
 	{	
 		int st = tokens[3].find("\r\n",0) + 2; 
 		int ed = tokens[3].find("\r\n", st); 
-		float d = std::stof(tokens[3].substr(st, ed - st));	
-		std::cout << d * 1000 * 1000 << " microseconds" << std::endl;	
-		std::chrono::milliseconds t((int)d * 1000);
+		int d = std::stoi(tokens[3].substr(st, ed - st));	
+		
+		std::chrono::seconds t(d);
 		if (d == 0) t = std::chrono::seconds::max();		
 		
 		std::chrono::system_clock::time_point time_limit = 
@@ -307,7 +307,8 @@ bool Server::BLPOP(int cfd)
 			= { cfd, time_limit };
 		
 		blocklist.insert(p);
-				
+		std::cout << cfd << " is blocked now\n";
+
 		if (queues.find(tokens[2]) != queues.end())
 		{
 			queues[tokens[2]].push(cfd);
@@ -322,8 +323,11 @@ bool Server::BLPOP(int cfd)
 				std::pair<std::string, 
 				std::queue<int>>
 				(tokens[2], q));		
-		}	
-	}
+		}
+
+		std::cout << "Cfd: " << cfd << " Queue Size:" << queues[tokens[2]].size() << std::endl;
+				
+	}	
 	return false; 
 }
 
@@ -451,68 +455,38 @@ void Server::controller()
 	bzero(buffer, 256);
 
 	int i = 0;
-	
-	while (i < clientfds.size())
-	{
-		std::cout << "begin new loop" << std::endl;
-		auto now = std::chrono::system_clock::now();
-		for (auto it = blocklist.begin(); it != blocklist.end(); it++)
-		{
-			if (it->second <= now)
-			{
-				std::cout << "Detect expiry" << std::endl;
-				auto r = "*-1\r\n";
-				blocklist.erase(it->first);
-				int cfd = it->first; 
-				sendData(cfd,1, r);
-			}		
-		}
+	int before = i; 
 
+	while (i < clientfds.size())
+	{ 
 		if (FD_ISSET(clientfds[i], &masterfds))
-		{ 
-			if (blocklist.find(clientfds[i]) != blocklist.end()) continue; 
+		{
+			before = i; 
+			if (blocklist.find(clientfds[i]) != blocklist.end())
+			{
+				auto now = std::chrono::system_clock::now(); 
+				if (blocklist[clientfds[i]] <= now)
+				{
+					response = "$-1\r\n";
+					blocklist.erase(clientfds[i]);
+					sendData(i,0);
+				}
+				continue; 
+			}
 			if (!getInput(i)) continue; // check client closed 			
-			if (commandCenter(clientfds[i])) sendData(i,0);
-		}
+			if (commandCenter(clientfds[i])) sendData(i,0);						
+		} 
 		i++;
 	}
 }
 
-void Server::unblockWatch()
+void Server::loop()
 {
 	while (true)
-	{
-		auto now = std::chrono::system_clock::now();
-		for (auto it = blocklist.begin(); it != blocklist.end(); it++)
-		{
-			if (it->second <= now)
-			{
-				auto r = "*-1\r\n";
-				blocklist.erase(it->first);
-				int cfd = it->first; 
-				sendData(cfd,1, r);
-			}		
-		}	
-	}
-}
-
-
-void Server::loop(std::chrono::system_clock::time_point n)
-{
-	// unblockWatch();
-	while (true)
-	{
-		auto n2 = std::chrono::system_clock::now(); 
-		auto duration =
-			std::chrono::duration_cast<std::chrono::microseconds>(n2 - n); 
-		std::cout << "Start " << duration.count() << std::endl;		
-		
-		if (reInit()) break;
+	{		
+		if (reInit() < 0) break; 
 		getClients(); 
-		controller();
-		n2 = std::chrono::system_clock::now(); 
-		duration = std::chrono::duration_cast<std::chrono::microseconds>(n2 - n); 
-		std::cout << "Hit outermost loop " << duration.count() << std::endl;
+		controller();	
 	}
 }
 
@@ -520,11 +494,5 @@ Server::~Server()
 {
 	std::cout << "Passed through\n";
 	clientfds.clear();
-	tokens.clear(); 
-	dict.clear(); 
-	times.clear(); 
-	lists.clear(); 
-	blocklist.clear(); 
-	queues.clear();
 	close(server_fd);
 }
