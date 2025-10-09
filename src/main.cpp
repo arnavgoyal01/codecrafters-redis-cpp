@@ -22,13 +22,14 @@
 
 int main(int argc, char **argv) 
 {
+	auto n2 = std::chrono::system_clock::now();
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
 	Server server = Server();
   
-	server.loop(); 
+	server.loop(n2); 
   return 0;
 }
 
