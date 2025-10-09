@@ -1,6 +1,7 @@
 #include "../headers/Server.h"
 #include <algorithm>
 #include <chrono>
+#include <ctime>
 #include <iostream>
 #include <string>
 #include <utility>
@@ -49,17 +50,20 @@ int Server::getFD()
 
 int Server::reInit()
 {
+	struct timeval tv;
 	FD_ZERO(&masterfds); 
 	FD_SET(server_fd, &masterfds);
 	maxfd = server_fd; 	
 	for (auto cfd : clientfds)
-	{	
+	{
 		FD_SET(cfd, &masterfds);
 		if (cfd > maxfd) maxfd = cfd; 
 	}
+	tv.tv_sec = 0;
+  tv.tv_usec = 0;
 	int activity =
-		select(maxfd + 1, &masterfds, NULL, NULL, NULL); 
-	
+		select(maxfd + 1, &masterfds, NULL, NULL, &tv); 
+
 	if (activity < 0) 
 	{
 		std::cerr << "select error\n"; 
@@ -294,21 +298,23 @@ bool Server::BLPOP(int cfd)
 	{	
 		int st = tokens[3].find("\r\n",0) + 2; 
 		int ed = tokens[3].find("\r\n", st); 
-		int d = std::stoi(tokens[3].substr(st, ed - st));	
+		float d = std::stof(tokens[3].substr(st, ed - st));	
 		
-		std::chrono::seconds t(d);
-		if (d == 0) t = std::chrono::seconds::max();		
+		std::chrono::milliseconds t( (int) (d * 1000) );
+		if (d == 0) 
+		{
+			std::cout << "TRUE\n";
+			t = std::chrono::hours(1);
+		}
 		
-		std::chrono::system_clock::time_point time_limit = 
-			std::chrono::system_clock::now() + t;
+		auto time_limit = std::chrono::system_clock::now() + t;
 
 		std::pair<
 			int, std::chrono::system_clock::time_point> p
 			= { cfd, time_limit };
 		
 		blocklist.insert(p);
-		std::cout << cfd << " is blocked now\n";
-
+		
 		if (queues.find(tokens[2]) != queues.end())
 		{
 			queues[tokens[2]].push(cfd);
@@ -323,10 +329,7 @@ bool Server::BLPOP(int cfd)
 				std::pair<std::string, 
 				std::queue<int>>
 				(tokens[2], q));		
-		}
-
-		std::cout << "Cfd: " << cfd << " Queue Size:" << queues[tokens[2]].size() << std::endl;
-				
+		}	
 	}	
 	return false; 
 }
@@ -352,7 +355,7 @@ void Server::BLPOP_RESOLVE(std::string key)
 }
 
 bool Server::commandCenter(int cfd)
-{	
+{
 	if (tokens[1] == "4\r\nPING\r\n")
 	{
 		response = "+PONG\r\n";	
@@ -455,38 +458,39 @@ void Server::controller()
 	bzero(buffer, 256);
 
 	int i = 0;
-	int before = i; 
 
 	while (i < clientfds.size())
-	{ 
+	{
 		if (FD_ISSET(clientfds[i], &masterfds))
-		{
-			before = i; 
-			if (blocklist.find(clientfds[i]) != blocklist.end())
-			{
-				auto now = std::chrono::system_clock::now(); 
-				if (blocklist[clientfds[i]] <= now)
-				{
-					response = "$-1\r\n";
-					blocklist.erase(clientfds[i]);
-					sendData(i,0);
-				}
-				continue; 
-			}
-			if (!getInput(i)) continue; // check client closed 			
+		{ 
+			if (!getInput(i)) continue; // check client closed
 			if (commandCenter(clientfds[i])) sendData(i,0);						
-		} 
+		}
+		
+		else if (blocklist.find(clientfds[i]) != blocklist.end())
+		{
+			auto now = std::chrono::system_clock::now(); 
+			auto r = "*-1\r\n";
+			 
+			if (blocklist[clientfds[i]] <= now)
+			{
+				blocklist.erase(clientfds[i]);
+				sendData(i,0,r);
+				continue;			
+			} 
+		}
 		i++;
 	}
 }
 
 void Server::loop()
 {
+	// reInit(); 
 	while (true)
 	{		
-		if (reInit() < 0) break; 
+		if (reInit() < 0) break;
 		getClients(); 
-		controller();	
+		controller();
 	}
 }
 
