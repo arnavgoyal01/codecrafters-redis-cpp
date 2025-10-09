@@ -1,4 +1,7 @@
 #include "../headers/Server.h"
+#include <algorithm>
+#include <chrono>
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -77,14 +80,13 @@ void Server::getClients()
 												 (struct sockaddr *) &client_addr,
 													(socklen_t *) &client_addr_len);
 		
-		std::cout << "Client fd1: " <<  client_fd1 << "\n"; 	
+		// std::cout << "Client fd1: " <<  client_fd1 << "\n"; 	
 		if (client_fd1 < 0) 
 		{
 			std::cerr << "client 1 accept failed\n";			
 		}
 		clientfds.push_back(client_fd1);	
-		std::cout << "Added new client to set "
-			<< client_fd1 << "\n";
+		// std::cout << "Added new client to set " << client_fd1 << "\n";
 	}
 }
 
@@ -158,7 +160,9 @@ void Server::listPush()
 		i++; 
 	}
 	response = ":" + std::to_string(n) + "\r\n";
+	BLPOP_RESOLVE(tokens[2]); 
 }
+
 
 void Server::listPushLeft()
 {
@@ -183,6 +187,8 @@ void Server::listPushLeft()
 		i++; 
 	}
 	response = ":" + std::to_string(n) + "\r\n";
+
+	BLPOP_RESOLVE(tokens[2]); 
 }
 
 void Server::lrange()
@@ -248,30 +254,24 @@ void Server::LPOP()
 	auto it = lists.find(tokens[2]); 
 	if (it != lists.end())
 	{
-		if (it->second.size() != 0)
+		int i = 1; 
+		response = ""; 
+		if (tokens.size() > 3)
 		{
-			int i = 1; 
-			response = ""; 
-			if (tokens.size() > 3)
-			{
-				int st = tokens[3].find("\r\n",0) + 2; 
-				int ed = tokens[3].find("\r\n", st); 
-				i = std::stoi(tokens[3].substr(st, ed - st));	
-				if (i > it->second.size()) i = it->second.size(); 
-				response += "*" + std::to_string(i) + "\r\n";
-			}
+			int st = tokens[3].find("\r\n",0) + 2; 
+			int ed = tokens[3].find("\r\n", st); 
+			i = std::stoi(tokens[3].substr(st, ed - st));	
+			if (i > it->second.size()) i = it->second.size(); 
+			response += "*" + std::to_string(i) + "\r\n";
+		}
 
-			for (int j = 0; j < i; j++)
-			{
-				response += "$" + it->second[j]; 
-			}
-			it->second.erase(it->second.begin(),
-										it->second.begin() + i); 
-		}
-		else 
+		for (int j = 0; j < i; j++)
 		{
-			response = "$-1\r\n";		
+			response += "$" + it->second[j]; 
 		}
+		it->second.erase(it->second.begin(),
+									it->second.begin() + i);
+		if (it->second.size() == 0) lists.erase(it);	
 	}
 	else 
 	{
@@ -279,8 +279,80 @@ void Server::LPOP()
 	}
 }
 
-void Server::commandCenter()
+bool Server::BLPOP(int cfd)
 {
+	auto it = lists.find(tokens[2]); 
+	if (it != lists.end())
+	{
+		response = "*2\r\n$" + tokens[2] + "$" + it->second[0]; 	
+		it->second.erase(it->second.begin(),
+									 it->second.begin() + 1);
+		if (it->second.size() == 0) lists.erase(it);
+		return true; 
+	}
+	else 
+	{	
+		int st = tokens[3].find("\r\n",0) + 2; 
+		int ed = tokens[3].find("\r\n", st); 
+		int d = std::stoi(tokens[3].substr(st, ed - st));	
+		
+		std::chrono::seconds t(d);
+		if (d == 0) t = std::chrono::seconds::max();		
+		
+		std::chrono::system_clock::time_point time_limit = 
+			std::chrono::system_clock::now() + t;
+
+		std::pair<
+			int, std::chrono::system_clock::time_point> p
+			= { cfd, time_limit };
+		
+		blocklist.insert(p);
+		std::cout << cfd << " is blocked now\n";
+
+		if (queues.find(tokens[2]) != queues.end())
+		{
+			queues[tokens[2]].push(cfd);
+		}
+		else
+		{
+			std::queue<int> q;
+			
+			q.push(cfd);
+			
+			queues.insert(
+				std::pair<std::string, 
+				std::queue<int>>
+				(tokens[2], q));		
+		}
+
+		std::cout << "Cfd: " << cfd << " Queue Size:" << queues[tokens[2]].size() << std::endl;
+				
+	}	
+	return false; 
+}
+
+void Server::BLPOP_RESOLVE(std::string key)
+{
+	auto it = queues.find(key);
+	if (it != queues.end())
+	{
+		while (lists[key].size() != 0 && !it->second.empty())
+		{
+			auto p = it->second.front(); 
+			it->second.pop(); 
+			if (blocklist.find(p) == blocklist.end()) continue; 
+			auto r = "*2\r\n$" + key + "$" + lists[key][0];
+			sendData(p,1, r);
+			blocklist.erase(p);
+			lists[key].erase(lists[key].begin(),
+										lists[key].begin() + 1);
+		}
+		if (lists[key].size() == 0) lists.erase(key);	
+	}
+}
+
+bool Server::commandCenter(int cfd)
+{	
 	if (tokens[1] == "4\r\nPING\r\n")
 	{
 		response = "+PONG\r\n";	
@@ -313,55 +385,96 @@ void Server::commandCenter()
 	} else if (tokens[1] == "4\r\nLPOP\r\n")
 	{
 		LPOP();
+	} else if (tokens[1] == "5\r\nBLPOP\r\n")
+	{
+		return BLPOP(cfd);
 	}
-
-
+	return true;
 }
 
-void Server::getInput()
+bool Server::getInput(int& i)
+{
+	int num_bytes =
+		recv(clientfds[i], buffer, sizeof(buffer) - 1, 0);
+
+	if (num_bytes == 0)
+	{
+		close(clientfds[i]);
+		std::cout << "Disconnected " << clientfds[i] << "\n"; 
+		clientfds.erase(clientfds.begin() + i); 
+		i--;
+		return false; 
+	}
+
+	input = buffer; 
+	tokens.clear();
+	size_t start = 0; 
+	size_t end = input.find("$",start); 
+	while (end != std::string::npos)
+	{
+		tokens.push_back(input.substr(start,end - start));
+		start = end + 1; 
+		end = input.find("$", start); 
+	}
+	tokens.push_back(input.substr(start));
+	return true;
+}
+
+void Server::sendData(int& i, int type)
+{
+	int cfd = i; 
+	if (type == 0) cfd = clientfds[i]; 
+
+	int m = send(cfd,
+		response.c_str(),
+		response.size(), 0);
+	if (m < 0) 
+	{
+	std::cerr << "Error in send\n"; 
+	std::printf("Socket error code %d\n", errno); 
+	}
+}
+
+void Server::sendData(int& i, int type, std::string r)
+{
+	int cfd = i; 
+	if (type == 0) cfd = clientfds[i]; 
+
+	int m = send(cfd,
+		r.c_str(),
+		r.size(), 0);
+	if (m < 0) 
+	{
+	std::cerr << "Error in send\n"; 
+	std::printf("Socket error code %d\n", errno); 
+	}
+}
+
+void Server::controller()
 {		
 	bzero(buffer, 256);
 
-	int i = 0; 
+	int i = 0;
+	int before = i; 
 
 	while (i < clientfds.size())
 	{ 
 		if (FD_ISSET(clientfds[i], &masterfds))
 		{
-			int num_bytes =
-				recv(clientfds[i], buffer, sizeof(buffer) - 1, 0);
-			
-			if (num_bytes == 0)
+			before = i; 
+			if (blocklist.find(clientfds[i]) != blocklist.end())
 			{
-				close(clientfds[i]);
-				std::cout << "Disconnected " << clientfds[i] << "\n"; 
-				clientfds.erase(clientfds.begin() + i); 
-				i--;
-				continue;
+				auto now = std::chrono::system_clock::now(); 
+				if (blocklist[clientfds[i]] <= now)
+				{
+					response = "$-1\r\n";
+					blocklist.erase(clientfds[i]);
+					sendData(i,0);
+				}
+				continue; 
 			}
-
-			input = buffer; 
-			tokens.clear();
-			size_t start = 0; 
-			size_t end = input.find("$",start); 
-			while (end != std::string::npos)
-			{
-				tokens.push_back(input.substr(start,end - start));
-				start = end + 1; 
-				end = input.find("$", start); 
-			}
-			tokens.push_back(input.substr(start)); 
-			
-			commandCenter(); 
-								
-			int m = send(clientfds[i],
-								 response.c_str(),
-								 response.size(), 0);
-			if (m < 0) 
-			{
-				std::cerr << "Error in send\n"; 
-				std::printf("Socket error code %d\n", errno); 
-			}
+			if (!getInput(i)) continue; // check client closed 			
+			if (commandCenter(clientfds[i])) sendData(i,0);						
 		} 
 		i++;
 	}
@@ -373,7 +486,7 @@ void Server::loop()
 	{		
 		if (reInit() < 0) break; 
 		getClients(); 
-		getInput();	
+		controller();	
 	}
 }
 

@@ -19,7 +19,8 @@
 #include <errno.h>
 #include <map>
 #include <chrono>
-
+#include <queue>
+#include <unordered_set>
 
 class Server 
 {
@@ -49,6 +50,12 @@ private:
 	std::map<std::string, 
 	std::vector<std::string>> lists; 
 
+	std::map<
+		int, std::chrono::system_clock::time_point> blocklist;
+
+	std::map<std::string, 
+		std::queue<int>> queues;  
+
 public:
 
 	Server();
@@ -61,9 +68,13 @@ public:
 
 	void getClients(); 
 
-	void getInput();
+	bool getInput(int& i);
 
-	void commandCenter(); 
+	void sendData(int& i, int type); 
+	
+	void sendData(int& i, int type, std::string r); 
+
+	bool commandCenter(int cfd); 
 
 	void setValue(); 
 	
@@ -78,6 +89,12 @@ public:
 	void getLength();
 
 	void LPOP();
+	
+	bool BLPOP(int cfd);
+
+	void BLPOP_RESOLVE(std::string key);
+
+	void controller();
 
 	void loop(); 
 };
