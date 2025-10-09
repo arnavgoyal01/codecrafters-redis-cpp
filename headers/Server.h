@@ -92,6 +92,8 @@ public:
 	
 	bool BLPOP(int cfd);
 
+	void TYPE();
+
 	void BLPOP_RESOLVE(std::string key);
 
 	void controller();

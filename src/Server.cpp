@@ -354,6 +354,20 @@ void Server::BLPOP_RESOLVE(std::string key)
 	}
 }
 
+void Server::TYPE()
+{
+	if (dict.find(tokens[2]) != dict.end())
+	{
+		response = "$6\r\nstring\r\n";
+	} else if (lists.find(tokens[2]) != lists.end())
+	{
+		response = "$4\r\nlist\r\n";
+	} else
+	{
+		response = "$4\r\nnone\r\n";
+	}
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (tokens[1] == "4\r\nPING\r\n")
@@ -391,7 +405,11 @@ bool Server::commandCenter(int cfd)
 	} else if (tokens[1] == "5\r\nBLPOP\r\n")
 	{
 		return BLPOP(cfd);
+	} else if (tokens[1] == "4\r\nTYPE\r\n")
+	{
+		TYPE();
 	}
+
 	return true;
 }
 
