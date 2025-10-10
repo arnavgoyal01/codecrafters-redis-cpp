@@ -3,6 +3,7 @@
 #include <chrono>
 #include <ctime>
 #include <iostream>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -362,9 +363,36 @@ void Server::TYPE()
 	} else if (lists.find(tokens[2]) != lists.end())
 	{
 		response = "$4\r\nlist\r\n";
+	} else if (streams.find(tokens[2]) != streams.end())
+	{
+		response = "$6\r\nstream\r\n";
 	} else
 	{
 		response = "$4\r\nnone\r\n";
+	}
+}
+
+void Server::XADD()
+{
+	if (streams.find(tokens[2]) != streams.end())
+	{
+		int x = 4; 
+		while (x + 1 < tokens.size())
+		{
+			std::pair<std::string, std::string> p = { tokens[x], tokens[x+1] };
+			streams[tokens[2]].insert(p); 
+			x += 2; 
+		}
+		response = "$" + streams[tokens[2]]["id"];
+	}
+	else 
+	{
+		std::map<std::string, std::string> temp; 
+		temp["id"] = tokens[3]; 
+		std::pair<std::string,
+			std::map<std::string, std::string>> p = { tokens[2], temp };
+		streams.insert(p);
+		XADD();
 	}
 }
 
@@ -408,6 +436,9 @@ bool Server::commandCenter(int cfd)
 	} else if (tokens[1] == "4\r\nTYPE\r\n")
 	{
 		TYPE();
+	} else if (tokens[1] == "4\r\nXADD\r\n")
+	{
+		XADD();
 	}
 
 	return true;

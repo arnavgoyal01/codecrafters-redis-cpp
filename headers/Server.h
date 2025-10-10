@@ -56,6 +56,9 @@ private:
 	std::map<std::string, 
 		std::queue<int>> queues;  
 
+	std::map<std::string, 
+		std::map<std::string, std::string>> streams; 
+
 public:
 
 	Server();
@@ -93,6 +96,8 @@ public:
 	bool BLPOP(int cfd);
 
 	void TYPE();
+
+	void XADD();
 
 	void BLPOP_RESOLVE(std::string key);
 
