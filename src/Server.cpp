@@ -374,13 +374,26 @@ void Server::TYPE()
 
 void Server::XADD()
 {
+	auto n = tokens[3]; 
 	if (streams.find(tokens[2]) != streams.end())
 	{
-		std::cout << streams[tokens[2]].rbegin()->first;
 		if (tokens[3] == "3\r\n0-0\r\n")
 		{
 			response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
-		}	
+		}
+		else if (tokens[3].find("*") != std::string::npos)
+		{
+			auto old = streams[tokens[2]].rbegin()->first;
+			auto start = old.find("n",0) + 1;
+			auto end = old.find("\\",start);
+			auto curr_index = old.substr(start, end - start); 
+			auto temp = curr_index.find("-", 0);
+			auto curr_time = curr_index.substr(0,temp); 
+			auto curr_num = curr_index.substr(temp + 1, curr_index.size() - temp - 1);
+			auto new_num = std::to_string(std::stoi(curr_num) + 1); 
+			auto new_index = curr_index + "-" + new_num; 
+			tokens[3] = std::to_string(new_index.size()) + "\r\n" + new_index + "\r\n";
+		}
 		else if (streams[tokens[2]].rbegin()->first >= tokens[3])
 		{
 			response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
