@@ -372,28 +372,57 @@ void Server::TYPE()
 	}
 }
 
+void Server::resolveID()
+{
+	if (tokens[3].find("*") != std::string::npos)
+	{
+		if (streams.find(tokens[2]) != streams.end())
+		{		
+			auto old = streams[tokens[2]].rbegin()->first;		
+			auto start = old.find("\\",0) + 4;
+			auto end = old.size() - 2;
+			auto curr_index = old.substr(start, end - start);
+			auto temp = curr_index.find("-", 0);
+			auto curr_time = curr_index.substr(0,temp);	
+			std::cout <<"Current time: " << curr_time << " x";
+			
+			start = tokens[3].find("\\",0) + 4;
+			end = tokens[3].size() - 2;		
+			auto n_id = tokens[3].substr(start, end - start);
+			temp = n_id.find("-", 0);
+			auto n_time = n_id.substr(0,temp); 
+			std::cout <<"New time: " << n_time << " y";
+			std::string new_index;			
+
+			if (curr_time == n_time)
+			{
+				auto curr_num = curr_index.substr(temp + 1, curr_index.size() - temp - 1);
+				auto new_num = std::to_string(std::stoi(curr_num) + 1); 
+				new_index = curr_time + "-" + new_num;			
+			} else 
+			{
+				new_index = n_time + "-0"; 
+			}
+			 
+			tokens[3] = std::to_string(new_index.size())
+				+ "\r\n" + new_index + "\r\n";
+		} 
+		else
+		{
+			tokens[3] = "3\r\n0-1\r\n";
+		}
+	}
+}
+
 void Server::XADD()
 {
-	auto n = tokens[3]; 
+	resolveID(); 	
 	if (streams.find(tokens[2]) != streams.end())
 	{
 		if (tokens[3] == "3\r\n0-0\r\n")
 		{
 			response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
-		}
-		else if (tokens[3].find("*") != std::string::npos)
-		{
-			auto old = streams[tokens[2]].rbegin()->first;
-			auto start = old.find("n",0) + 1;
-			auto end = old.find("\\",start);
-			auto curr_index = old.substr(start, end - start); 
-			auto temp = curr_index.find("-", 0);
-			auto curr_time = curr_index.substr(0,temp); 
-			auto curr_num = curr_index.substr(temp + 1, curr_index.size() - temp - 1);
-			auto new_num = std::to_string(std::stoi(curr_num) + 1); 
-			auto new_index = curr_index + "-" + new_num; 
-			tokens[3] = std::to_string(new_index.size()) + "\r\n" + new_index + "\r\n";
-		}
+		}	
 		else if (streams[tokens[2]].rbegin()->first >= tokens[3])
 		{
 			response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";

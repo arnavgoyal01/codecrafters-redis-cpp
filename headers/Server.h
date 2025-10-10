@@ -102,6 +102,8 @@ public:
 
 	void BLPOP_RESOLVE(std::string key);
 
+	void resolveID();
+
 	void controller();
 
 	void loop(); 
