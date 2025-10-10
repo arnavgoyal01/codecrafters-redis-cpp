@@ -376,23 +376,60 @@ void Server::XADD()
 {
 	if (streams.find(tokens[2]) != streams.end())
 	{
-		int x = 4; 
-		while (x + 1 < tokens.size())
+		std::cout << streams[tokens[2]].rbegin()->first;
+		if (tokens[3] == "3\r\n0-0\r\n")
 		{
-			std::pair<std::string, std::string> p = { tokens[x], tokens[x+1] };
-			streams[tokens[2]].insert(p); 
-			x += 2; 
+			response = "-ERR The ID specified in XADD must be greater than 0-0\r\n";
+		}	
+		else if (streams[tokens[2]].rbegin()->first >= tokens[3])
+		{
+			response = "-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n";
+		} 
+		else if (streams[tokens[2]].find(tokens[3]) != streams[tokens[2]].end())
+		{
+			auto it = streams[tokens[2]].find(tokens[3]); 
+			int x = 4; 
+			while (x + 1 < tokens.size())
+			{
+				std::pair<std::string, std::string> p = { tokens[x], tokens[x+1] };
+				it->second->insert(p); 
+				x += 2; 
+			}	
+			response = "$" + tokens[3];
 		}
-		response = "$" + streams[tokens[2]]["id"];
+		else
+		{
+			std::map<std::string, std::string> temp; 
+			int x = 4; 
+			while (x + 1 < tokens.size())
+			{
+				std::pair<std::string, std::string> p = { tokens[x], tokens[x+1] };
+				temp.insert(p); 
+				x += 2; 
+			}	
+			streams[tokens[2]][tokens[3]] = &temp;			
+			response = "$" + tokens[3];
+		}	
 	}
 	else 
 	{
 		std::map<std::string, std::string> temp; 
-		temp["id"] = tokens[3]; 
+		int x = 4; 
+		while (x + 1 < tokens.size())
+		{
+			std::pair<std::string, std::string> p = { tokens[x], tokens[x+1] };
+			temp.insert(p); 
+			x += 2; 
+		}
+		
+		std::map<std::string, std::map<std::string, std::string>*> temp2; 
+		temp2[tokens[3]] = &temp;
 		std::pair<std::string,
-			std::map<std::string, std::string>> p = { tokens[2], temp };
+			std::map<std::string,
+				std::map<std::string, std::string>*>> p = { tokens[2], temp2};
+		
 		streams.insert(p);
-		XADD();
+		response = "$" + tokens[3];
 	}
 }
 
@@ -547,5 +584,12 @@ Server::~Server()
 {
 	std::cout << "Passed through\n";
 	clientfds.clear();
+	streams.clear(); 
+	queues.clear(); 
+	blocklist.clear(); 
+	lists.clear(); 
+	times.clear(); 
+	dict.clear(); 
+	tokens.clear(); 
 	close(server_fd);
 }

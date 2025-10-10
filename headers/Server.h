@@ -56,8 +56,9 @@ private:
 	std::map<std::string, 
 		std::queue<int>> queues;  
 
-	std::map<std::string, 
-		std::map<std::string, std::string>> streams; 
+	std::map<std::string,
+			std::map<std::string,
+				std::map<std::string, std::string>*>> streams; 
 
 public:
 
