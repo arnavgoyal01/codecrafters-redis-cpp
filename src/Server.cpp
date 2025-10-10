@@ -374,7 +374,16 @@ void Server::TYPE()
 
 void Server::resolveID()
 {
-	if (tokens[3].find("*") != std::string::npos)
+	if (tokens[3] == "1\r\n*\r\n")
+	{
+		auto now = std::chrono::system_clock::now();
+    auto duration_since_epoch = now.time_since_epoch();
+    long long milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(duration_since_epoch).count();
+		auto st = std::to_string(milliseconds_since_epoch) + "-0";
+		tokens[3] = std::to_string(st.size()) + "\r\n" + st + "\r\n";
+
+	}
+	else if (tokens[3].find("*") != std::string::npos)
 	{
 		if (streams.find(tokens[2]) != streams.end())
 		{		
