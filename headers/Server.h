@@ -58,7 +58,7 @@ private:
 
 	std::map<std::string,
 			std::map<std::string,
-				std::map<std::string, std::string>*>> streams; 
+				std::map<std::string, std::string>>> streams; 
 
 public:
 
@@ -68,7 +68,7 @@ public:
 
 	int getFD(); 
 
-	int reInit(); 
+	bool reInit(); 
 
 	void getClients(); 
 
@@ -99,6 +99,8 @@ public:
 	void TYPE();
 
 	void XADD();
+
+	void XRANGE();	
 
 	void BLPOP_RESOLVE(std::string key);
 

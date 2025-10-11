@@ -443,7 +443,7 @@ void Server::XADD()
 			while (x + 1 < tokens.size())
 			{
 				std::pair<std::string, std::string> p = { tokens[x], tokens[x+1] };
-				it->second.insert(p); 
+				it->second->insert(p); 
 				x += 2; 
 			}	
 			response = "$" + tokens[3];
@@ -458,7 +458,7 @@ void Server::XADD()
 				temp.insert(p); 
 				x += 2; 
 			}	
-			streams[tokens[2]][tokens[3]] = temp;			
+			streams[tokens[2]][tokens[3]] = &temp;			
 			response = "$" + tokens[3];
 		}	
 	}
@@ -473,11 +473,11 @@ void Server::XADD()
 			x += 2; 
 		}
 		
-		std::map<std::string, std::map<std::string, std::string>> temp2; 
-		temp2[tokens[3]] = temp;
+		std::map<std::string, std::map<std::string, std::string>*> temp2; 
+		temp2[tokens[3]] = &temp;
 		std::pair<std::string,
 			std::map<std::string,
-				std::map<std::string, std::string>>> p = { tokens[2], temp2};
+				std::map<std::string, std::string>*>> p = { tokens[2], temp2};
 		
 		streams.insert(p);
 		response = "$" + tokens[3];
@@ -496,37 +496,34 @@ void Server::XRANGE()
 		tokens[3] = std::to_string(time.size()) + "\r\n" + time + "\r\n"; 
 	}
 	
-	auto start = tokens[4].find("\\",0) + 4;
-	auto end = tokens[4].size() - 2;
-	auto time = tokens[4].substr(start, end - start);
-	int i = time.size() - 1; 
-	while (time[i] == '9')
-	{
-		time[i] = '0';
-		i--; 
-	}
-	time[i]++; 
-	
 	if (tokens[4].find("-",0) == std::string::npos) 
 	{
-		
+		auto start = tokens[3].find("\\",0) + 4;
+		auto end = tokens[3].size() - 2;
+		auto time = tokens[3].substr(start, end - start);
+		int i = time.size() - 1; 
+		while (time[i] == '9')
+		{
+			time[i] = '0';
+			i--; 
+		}
+		time[i]++; 
 		time = time + "-0"; 
+		tokens[4] = std::to_string(time.size()) + "\r\n" + time + "\r\n"; 
 	}
-
-	tokens[4] = std::to_string(time.size()) + "\r\n" + time + "\r\n"; 
+	
+	std::cout << tokens[3] << " " << tokens[4] << "\n";
 	auto it0 = d.find(tokens[3]); 
 	if (it0 == d.end()) it0 = d.begin(); 
 	auto it1 = d.find(tokens[4]); 
-	
-	std::cout << it0->second.begin()->first;
 
 	int c = 0; 
 	std::string x = ""; 
 	for (auto it = it0; it != it1; it++)
 	{
-		c++;
-		auto entry = it->second;		
-		auto r = "*2\r\n$" + it->first + "*" + std::to_string(entry.size() * 2) + "\r\n"; 
+		c++; 
+		auto entry = *it->second;
+		auto r = "*2\r\n$" + it->first + "*" + std::to_string(entry.size() * 2) + "\r\n";
 		for (auto it2 = entry.begin(); it2 != entry.end(); it2++)
 		{
 			r += "$" + it2->first; 
