@@ -537,6 +537,38 @@ void Server::XRANGE()
 	response = "*" + std::to_string(c) + "\r\n" + x; 
 }
 
+void Server::XREAD()
+{
+	auto d = streams[tokens[3]];
+	auto it = d.begin(); 
+	if (d.find(tokens[4]) != d.end()) 
+	{
+		it = d.find(tokens[4]);
+		it++; 
+	}
+	auto r = "*1\r\n*2\r\n$" + tokens[3];
+	int c = 0; 
+	std::string w = ""; 
+
+	for (auto i = it; i != d.end(); i++)
+	{
+		c++; 
+		auto entry = i->second; 
+		auto x = "*2\r\n$" + i->first + "*"
+			+ std::to_string(entry.size() * 2) + "\r\n";
+		for (auto i1 = entry.begin(); i1 != entry.end(); i1++)
+		{
+			x += "$" + i1->first; 
+			x += "$" + i1->second; 
+		}
+		w += x; 
+	}
+	
+	r += "*" + std::to_string(c) + "\r\n" + w; 
+	response = r; 
+
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (tokens[1] == "4\r\nPING\r\n")
@@ -583,6 +615,9 @@ bool Server::commandCenter(int cfd)
 	} else if (tokens[1] == "6\r\nXRANGE\r\n")
 	{
 		XRANGE();
+	} else if (tokens[1] == "5\r\nXREAD\r\n")
+	{
+		XREAD();
 	}
 
 	return true;

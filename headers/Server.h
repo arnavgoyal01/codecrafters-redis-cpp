@@ -102,6 +102,8 @@ public:
 
 	void XRANGE();	
 
+	void XREAD(); 
+
 	void BLPOP_RESOLVE(std::string key);
 
 	void resolveID();
