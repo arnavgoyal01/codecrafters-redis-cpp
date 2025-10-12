@@ -539,34 +539,62 @@ void Server::XRANGE()
 
 void Server::XREAD()
 {
-	auto d = streams[tokens[3]];
-	auto it = d.begin(); 
-	if (d.find(tokens[4]) != d.end()) 
-	{
-		it = d.find(tokens[4]);
-		it++; 
-	}
-	auto r = "*1\r\n*2\r\n$" + tokens[3];
-	int c = 0; 
-	std::string w = ""; 
+	int num = (tokens.size() - 3)/2; 
+	int j = 0; 
+	std::vector<
+		std::pair<
+			std::map<std::string,std::map<std::string, std::string>>::iterator,	
+			std::map<std::string,std::map<std::string, std::string>>::iterator
+	>> vp; 
 
-	for (auto i = it; i != d.end(); i++)
+	while (j < num)
 	{
-		c++; 
-		auto entry = i->second; 
-		auto x = "*2\r\n$" + i->first + "*"
-			+ std::to_string(entry.size() * 2) + "\r\n";
-		for (auto i1 = entry.begin(); i1 != entry.end(); i1++)
+		auto d = streams[tokens[3 + j]];
+		
+		vp.push_back(std::pair<
+				std::map<std::string,std::map<std::string, std::string>>::iterator,	
+				std::map<std::string,std::map<std::string, std::string>>::iterator
+		> (streams[tokens[3 + j]].begin(), streams[tokens[3 + j]].end()));
+		
+		if (streams[tokens[3 + j]].find(tokens[3 + num + j]) != streams[tokens[3 + j]].end()) 
 		{
-			x += "$" + i1->first; 
-			x += "$" + i1->second; 
-		}
-		w += x; 
+			vp[j].first = streams[tokens[3 + j]].find(tokens[3 + num + j]);
+			vp[j].first++; 
+		}	
+		std::cout << "ID: " <<  vp[0].first->first << "END\n"; 
+		j++; 
 	}
+	response = "*" + std::to_string(num) + "\r\n";
+	int c = 0; 
 	
-	r += "*" + std::to_string(c) + "\r\n" + w; 
-	response = r; 
-
+	std::cout << vp[0].first->first << "ED\n";
+	
+	for (int o = 0; o < vp.size(); o++)
+	{
+		auto p = vp[o];
+		std::string w = "*2\r\n$" + tokens[3 + c]; 
+		std::string r = "";
+		c++;
+		int d = 0; 
+		std::cout << "ID2 " << p.first->first << "END2\n"; 
+		
+		for (auto i = p.first; i != p.second; i++)
+		{
+			d++; 
+			auto entry = i->second; 
+			auto x = "*2\r\n$" + i->first + "*" + std::to_string(entry.size() * 2) + "\r\n";
+						
+			for (auto i1 = entry.begin(); i1 != entry.end(); i1++)
+			{
+				x += "$" + i1->first; 
+				x += "$" + i1->second; 
+			}
+			r += x; 
+		}
+			
+		w += "*" + std::to_string(d) + "\r\n" + r;
+		response += w; 
+	}
 }
 
 bool Server::commandCenter(int cfd)
