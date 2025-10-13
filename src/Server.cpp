@@ -156,9 +156,13 @@ void Server::INCR()
 		auto start = d.find("\r\n",0) + 2; 
 		auto end = d.find("\r\n", start); 
 		auto x = d.substr(start, end - start); 
-		auto y = std::to_string(std::stoi(x) + 1); 
-		dict[tokens[2]] = std::to_string(y.size()) + "\r\n" + y + "\r\n"; 
-		response = ":" + y + "\r\n"; 
+		try {
+			auto y = std::to_string(std::stoi(x) + 1); 
+			dict[tokens[2]] = std::to_string(y.size()) + "\r\n" + y + "\r\n"; 
+			response = ":" + y + "\r\n";
+		} catch (const std::invalid_argument& e) {
+			response = "-ERR value is not an integer or out of range\r\n";  
+		} 
 	}
 }
 void Server::listPush()
