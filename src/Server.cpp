@@ -769,6 +769,9 @@ bool Server::commandCenter(int cfd)
 	} else if (tokens[1] == "5\r\nmulti\r\n")
 	{
 		response = "+OK\r\n";
+	} else if (tokens[1] == "4\r\nexec\r\n")
+	{
+		response = "-ERR EXEC without MULTI\r\n";
 	}
 
 	return true;
