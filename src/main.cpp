@@ -25,8 +25,11 @@ int main(int argc, char **argv)
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+	
+	int port = 6379; 
+	if (argc > 1) port = std::stoi(argv[2]); 
 
-	Server server = Server();
+	Server server = Server(port);
   
 	server.loop(); 
   return 0;

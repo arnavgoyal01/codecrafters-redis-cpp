@@ -72,7 +72,7 @@ private:
 
 public:
 
-	Server();
+	Server(int port);
 
 	~Server(); 
 
