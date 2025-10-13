@@ -127,18 +127,24 @@ void Server::setValue()
 
 void Server::getValue()
 {
-	response = "$" + dict[tokens[2]];
-	auto it = times.find(tokens[2]); 
-	if (it != times.end())
+	if (dict.find(tokens[2]) == dict.end())
 	{
-		auto now = std::chrono::system_clock::now(); 
-		if (it->second <= now)
+		response = "$-1\r\n";	
+	} 
+	else 
+	{
+		response = "$" + dict[tokens[2]];
+		auto it = times.find(tokens[2]); 
+		if (it != times.end())
 		{
-			std::cout << "Able to detect expiry\n";
-			dict.erase(tokens[2]);
-			times.erase(it); 
-			response = "$-1\r\n";
-		}
+			auto now = std::chrono::system_clock::now(); 
+			if (it->second <= now)
+			{
+				dict.erase(tokens[2]);
+				times.erase(it); 
+				response = "$-1\r\n";
+			}
+		}	
 	}
 }
 
@@ -706,6 +712,45 @@ void Server::XREAD_BLOCK_RESOLVE(std::string key)
 	}
 }
 
+void Server::MULTI(int cfd)
+{
+	auto temp(tokens); 
+	std::string r = "+QUEUED\r\n";
+
+	if (tokens[1] == "4\r\nexec\r\n")
+	{
+		mul.erase(cfd);
+		if (queued_commands.find(cfd) == queued_commands.end())
+		{
+			response = "*0\r\n";
+			sendData(cfd,response);		
+		}	
+		else
+		{
+			while (!queued_commands[cfd].empty())
+			{
+				tokens = queued_commands[cfd].front(); 
+				queued_commands[cfd].pop(); 
+				if (commandCenter(cfd)) sendData(cfd,response);
+			}
+			queued_commands.erase(cfd); 
+		}
+	} 
+	else if (queued_commands.find(cfd) != queued_commands.end())
+	{
+		queued_commands[cfd].push(temp);
+		sendData(cfd,r);	
+	}
+	else
+	{
+		std::queue<std::vector<std::string>> q; 
+		q.push(temp); 
+		queued_commands[cfd] = q; 
+		sendData(cfd,r);	
+	}
+
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (tokens[1] == "4\r\nping\r\n")
@@ -768,19 +813,11 @@ bool Server::commandCenter(int cfd)
 		INCR();
 	} else if (tokens[1] == "5\r\nmulti\r\n")
 	{
-		mul = true; 
+		mul.insert(cfd); 
 		response = "+OK\r\n";
 	} else if (tokens[1] == "4\r\nexec\r\n")
 	{
-		if (!mul)
-		{
-			response = "-ERR EXEC without MULTI\r\n";
-		} 
-		else 
-		{
-			mul = false;
-			response = "*0\r\n";
-		}
+		response = "-ERR EXEC without MULTI\r\n";
 	}
 
 	return true;
@@ -840,7 +877,11 @@ void Server::controller()
 		if (FD_ISSET(clientfds[i], &masterfds))
 		{ 
 			if (!getInput(i)) continue; // check client closed
-			if (commandCenter(clientfds[i])) sendData(clientfds[i],response);						
+			
+			if (mul.find(clientfds[i]) != mul.end())
+			{
+				MULTI(clientfds[i]);
+			} else if (commandCenter(clientfds[i])) sendData(clientfds[i],response);						
 		}
 		
 		else if (blocklist.find(clientfds[i]) != blocklist.end())

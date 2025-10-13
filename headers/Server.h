@@ -40,7 +40,7 @@ private:
 	
 	std::string input;
 
-	bool mul = false; 
+	std::unordered_set<int> mul; 
 
 	std::vector<std::string> tokens; 
 			
@@ -66,6 +66,9 @@ private:
 	std::map<std::string,
 			std::map<std::string,
 				std::map<std::string, std::string>>> streams; 
+
+	std::map<int, 
+		std::queue<std::vector<std::string>>> queued_commands; 
 
 public:
 
@@ -118,6 +121,8 @@ public:
 	void XREAD_BLOCK_RESOLVE(std::string key);
 
 	void resolveID();
+
+	void MULTI(int cfd); 
 
 	void controller();
 
