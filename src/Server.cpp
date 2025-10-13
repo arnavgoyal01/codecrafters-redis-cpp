@@ -830,6 +830,9 @@ bool Server::commandCenter(int cfd)
 	} else if (tokens[1] == "7\r\ndiscard\r\n")
 	{
 		response = "-ERR DISCARD without MULTI\r\n";
+	} else if (tokens[1] == "4\r\ninfo\r\n")
+	{
+		response = "$11\r\nrole:master\r\n";
 	}
 
 	return true;
