@@ -604,6 +604,11 @@ void Server::XREAD_BLOCK(int cfd)
 	int d = std::stoi(tokens[3].substr(st, ed - st));	
 	
 	std::chrono::milliseconds t( d );
+	if (d == 0) 
+	{
+		t = std::chrono::hours(1);
+	}
+	
 	auto time_limit = std::chrono::system_clock::now() + t; 
 	
 	std::pair<
