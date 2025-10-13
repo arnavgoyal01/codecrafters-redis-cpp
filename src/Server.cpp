@@ -727,12 +727,14 @@ void Server::MULTI(int cfd)
 		}	
 		else
 		{
+			r = "*" + std::to_string(queued_commands[cfd].size()) + "\r\n"; 
 			while (!queued_commands[cfd].empty())
 			{
 				tokens = queued_commands[cfd].front(); 
 				queued_commands[cfd].pop(); 
-				if (commandCenter(cfd)) sendData(cfd,response);
+				if (commandCenter(cfd)) r += response;
 			}
+			sendData(cfd, r); 
 			queued_commands.erase(cfd); 
 		}
 	} 
