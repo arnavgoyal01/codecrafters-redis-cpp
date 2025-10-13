@@ -304,7 +304,6 @@ bool Server::BLPOP(int cfd)
 		std::chrono::milliseconds t( (int) (d * 1000) );
 		if (d == 0) 
 		{
-			std::cout << "TRUE\n";
 			t = std::chrono::hours(1);
 		}
 		
@@ -346,7 +345,7 @@ void Server::BLPOP_RESOLVE(std::string key)
 			it->second.pop(); 
 			if (blocklist.find(p) == blocklist.end()) continue; 
 			auto r = "*2\r\n$" + key + "$" + lists[key][0];
-			sendData(p,1, r);
+			sendData(p, r);
 			blocklist.erase(p);
 			lists[key].erase(lists[key].begin(),
 										lists[key].begin() + 1);
@@ -482,6 +481,7 @@ void Server::XADD()
 		streams.insert(p);
 		response = "$" + tokens[3];
 	}
+	XREAD_BLOCK_RESOLVE(tokens[2]); 
 }
 
 void Server::XRANGE()
@@ -597,55 +597,143 @@ void Server::XREAD()
 	}
 }
 
+void Server::XREAD_BLOCK(int cfd)
+{
+	int st = tokens[3].find("\r\n",0) + 2; 
+	int ed = tokens[3].find("\r\n", st); 
+	int d = std::stoi(tokens[3].substr(st, ed - st));	
+	
+	std::chrono::milliseconds t( d );
+	auto time_limit = std::chrono::system_clock::now() + t; 
+	
+	std::pair<
+		int, std::chrono::system_clock::time_point> p
+		= { cfd, time_limit };
+	
+	blocklist.insert(p);
+	
+	if (stream_queues.find(tokens[5]) != stream_queues.end())
+	{
+		stream_queues[tokens[5]].push_back(
+			std::pair<
+				std::string, int>(tokens[6], cfd));
+		
+		std::sort(stream_queues[tokens[5]].begin()
+						 ,stream_queues[tokens[5]].end());
+
+		std::reverse(stream_queues[tokens[5]].begin()
+						 ,stream_queues[tokens[5]].end());	
+	}
+	else
+	{
+		std::vector<
+			std::pair<
+				std::string, int>> q;
+		
+		q.push_back(std::pair<std::string, int>(tokens[6], cfd));
+		
+		stream_queues.insert(
+			std::pair<std::string, 
+				std::vector<
+					std::pair<
+						std::string, int>>>
+			(tokens[5], q));		
+	}
+
+}	
+
+void Server::XREAD_BLOCK_RESOLVE(std::string key)
+{
+	auto it = stream_queues.find(key);
+	if (it != stream_queues.end())
+	{
+		auto it2 = streams[key].rbegin();
+		int i = it->second.size() - 1; 
+		while (i >= 0 && it->second[i].first < it2->first)
+		{
+			auto p = it->second[i].second; 
+			if (blocklist.find(p) == blocklist.end()) 
+			{
+				it->second.erase(it->second.begin() + i); 
+				i--;			
+				continue;
+			}
+			auto entry = it2->second;
+			auto r = "*1\r\n*2\r\n$" + key + "*1\r\n*2\r\n$" + it2->first
+							+ "*" + std::to_string(entry.size() * 2) + "\r\n"; 
+			
+			for (auto x = entry.begin(); x != entry.end(); x++)
+			{
+				r += "$" + x->first; 
+				r += "$" + x->second; 
+			}
+			auto time = std::chrono::system_clock::now(); 
+			sendData(p,r);
+			blocklist.erase(p);
+			it->second.erase(it->second.begin() + i); 
+			i--; 
+		}
+		if (it->second.size() == 0) stream_queues.erase(key);	
+	}
+}
+
 bool Server::commandCenter(int cfd)
 {
-	if (tokens[1] == "4\r\nPING\r\n")
+	if (tokens[1] == "4\r\nping\r\n")
 	{
 		response = "+PONG\r\n";	
 	} 
-	else if (tokens[1] == "4\r\nECHO\r\n") 
+	else if (tokens[1] == "4\r\necho\r\n") 
 	{
 		response = "$" + tokens[2];
 	} 
-	else if (tokens[1] == "3\r\nSET\r\n")
+	else if (tokens[1] == "3\r\nset\r\n")
 	{
 		setValue(); 		
 	} 
-	else if (tokens[1] == "3\r\nGET\r\n")
+	else if (tokens[1] == "3\r\nget\r\n")
 	{
 		getValue(); 	
 	} 
-	else if (tokens[1] == "5\r\nRPUSH\r\n")
+	else if (tokens[1] == "5\r\nrpush\r\n")
 	{
 		listPush();
 	}
-	else if (tokens[1] == "6\r\nLRANGE\r\n")
+	else if (tokens[1] == "6\r\nlrange\r\n")
 	{
 		lrange(); 
-	} else if (tokens[1] == "5\r\nLPUSH\r\n")
+	} else if (tokens[1] == "5\r\nlpush\r\n")
 	{
 		listPushLeft();
-	} else if (tokens[1] == "4\r\nLLEN\r\n")
+	} else if (tokens[1] == "4\r\nllen\r\n")
 	{
 		getLength();
-	} else if (tokens[1] == "4\r\nLPOP\r\n")
+	} else if (tokens[1] == "4\r\nlpop\r\n")
 	{
 		LPOP();
-	} else if (tokens[1] == "5\r\nBLPOP\r\n")
+	} else if (tokens[1] == "5\r\nblpop\r\n")
 	{
 		return BLPOP(cfd);
-	} else if (tokens[1] == "4\r\nTYPE\r\n")
+	} else if (tokens[1] == "4\r\ntype\r\n")
 	{
 		TYPE();
-	} else if (tokens[1] == "4\r\nXADD\r\n")
+	} else if (tokens[1] == "4\r\nxadd\r\n")
 	{
 		XADD();
-	} else if (tokens[1] == "6\r\nXRANGE\r\n")
+	} else if (tokens[1] == "6\r\nxrange\r\n")
 	{
 		XRANGE();
-	} else if (tokens[1] == "5\r\nXREAD\r\n")
+	} else if (tokens[1] == "5\r\nxread\r\n")
 	{
-		XREAD();
+		if (tokens[2] == "7\r\nstreams\r\n")
+		{
+			XREAD();
+		} 
+		else if (tokens[2] == "5\r\nblock\r\n")
+		{
+			XREAD_BLOCK(cfd); 
+			return false; 
+		}
 	}
 
 	return true;
@@ -665,7 +753,9 @@ bool Server::getInput(int& i)
 		return false; 
 	}
 
-	input = buffer; 
+	input = buffer;
+	std::transform(input.begin(), input.end(), input.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
 	tokens.clear();
 	size_t start = 0; 
 	size_t end = input.find("$",start); 
@@ -679,33 +769,16 @@ bool Server::getInput(int& i)
 	return true;
 }
 
-void Server::sendData(int& i, int type)
+void Server::sendData(int& i, std::string r)
 {
 	int cfd = i; 
-	if (type == 0) cfd = clientfds[i]; 
-
-	int m = send(cfd,
-		response.c_str(),
-		response.size(), 0);
-	if (m < 0) 
-	{
-	std::cerr << "Error in send\n"; 
-	std::printf("Socket error code %d\n", errno); 
-	}
-}
-
-void Server::sendData(int& i, int type, std::string r)
-{
-	int cfd = i; 
-	if (type == 0) cfd = clientfds[i]; 
-
 	int m = send(cfd,
 		r.c_str(),
 		r.size(), 0);
 	if (m < 0) 
 	{
-	std::cerr << "Error in send\n"; 
-	std::printf("Socket error code %d\n", errno); 
+		std::cerr << "Error in send\n"; 
+		std::printf("Socket error code %d\n", errno); 
 	}
 }
 
@@ -720,18 +793,18 @@ void Server::controller()
 		if (FD_ISSET(clientfds[i], &masterfds))
 		{ 
 			if (!getInput(i)) continue; // check client closed
-			if (commandCenter(clientfds[i])) sendData(i,0);						
+			if (commandCenter(clientfds[i])) sendData(clientfds[i],response);						
 		}
 		
 		else if (blocklist.find(clientfds[i]) != blocklist.end())
 		{
 			auto now = std::chrono::system_clock::now(); 
-			auto r = "*-1\r\n";
+			response = "*-1\r\n";
 			 
 			if (blocklist[clientfds[i]] <= now)
 			{
 				blocklist.erase(clientfds[i]);
-				sendData(i,0,r);
+				sendData(clientfds[i],response);
 				continue;			
 			} 
 		}
@@ -741,7 +814,6 @@ void Server::controller()
 
 void Server::loop()
 {
-	// reInit(); 
 	while (true)
 	{		
 		if (reInit()) break;

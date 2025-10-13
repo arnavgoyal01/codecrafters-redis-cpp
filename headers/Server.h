@@ -56,6 +56,11 @@ private:
 	std::map<std::string, 
 		std::queue<int>> queues;  
 
+	std::map<std::string, 
+		std::vector<
+			std::pair<
+				std::string, int>>> stream_queues;  
+
 	std::map<std::string,
 			std::map<std::string,
 				std::map<std::string, std::string>>> streams; 
@@ -73,10 +78,8 @@ public:
 	void getClients(); 
 
 	bool getInput(int& i);
-
-	void sendData(int& i, int type); 
 	
-	void sendData(int& i, int type, std::string r); 
+	void sendData(int& i, std::string r); 
 
 	bool commandCenter(int cfd); 
 
@@ -103,8 +106,12 @@ public:
 	void XRANGE();	
 
 	void XREAD(); 
+	
+	void XREAD_BLOCK(int cfd); 
 
 	void BLPOP_RESOLVE(std::string key);
+
+	void XREAD_BLOCK_RESOLVE(std::string key);
 
 	void resolveID();
 
