@@ -716,8 +716,15 @@ void Server::MULTI(int cfd)
 {
 	auto temp(tokens); 
 	std::string r = "+QUEUED\r\n";
-
-	if (tokens[1] == "4\r\nexec\r\n")
+	
+	if (tokens[1] == "7\r\ndiscard\r\n")
+	{
+		mul.erase(cfd);		
+		queued_commands.erase(cfd);		
+		response = "+OK\r\n";
+		sendData(cfd,response);
+	} 
+	else if (tokens[1] == "4\r\nexec\r\n")
 	{
 		mul.erase(cfd);
 		if (queued_commands.find(cfd) == queued_commands.end())
@@ -820,6 +827,9 @@ bool Server::commandCenter(int cfd)
 	} else if (tokens[1] == "4\r\nexec\r\n")
 	{
 		response = "-ERR EXEC without MULTI\r\n";
+	} else if (tokens[1] == "7\r\ndiscard\r\n")
+	{
+		response = "-ERR DISCARD without MULTI\r\n";
 	}
 
 	return true;
