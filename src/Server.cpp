@@ -165,6 +165,7 @@ void Server::INCR()
 		} 
 	}
 }
+
 void Server::listPush()
 {
 	int n;
@@ -765,6 +766,9 @@ bool Server::commandCenter(int cfd)
 	} else if (tokens[1] == "4\r\nincr\r\n")
 	{
 		INCR();
+	} else if (tokens[1] == "5\r\nmulti\r\n")
+	{
+		response = "+OK\r\n";
 	}
 
 	return true;
