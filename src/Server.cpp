@@ -142,6 +142,25 @@ void Server::getValue()
 	}
 }
 
+void Server::INCR()
+{
+	if (dict.find(tokens[2]) == dict.end())
+	{
+		tokens.push_back("1\r\n1\r\n"); 
+		setValue();
+		response = ":1\r\n"; 
+	} 
+	else 
+	{
+		auto d = dict[tokens[2]]; 
+		auto start = d.find("\r\n",0) + 2; 
+		auto end = d.find("\r\n", start); 
+		auto x = d.substr(start, end - start); 
+		auto y = std::to_string(std::stoi(x) + 1); 
+		dict[tokens[2]] = std::to_string(y.size()) + "\r\n" + y + "\r\n"; 
+		response = ":" + y + "\r\n"; 
+	}
+}
 void Server::listPush()
 {
 	int n;
@@ -739,6 +758,9 @@ bool Server::commandCenter(int cfd)
 			XREAD_BLOCK(cfd); 
 			return false; 
 		}
+	} else if (tokens[1] == "4\r\nincr\r\n")
+	{
+		INCR();
 	}
 
 	return true;

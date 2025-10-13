@@ -87,6 +87,8 @@ public:
 	
 	void getValue(); 
 
+	void INCR(); 
+
 	void listPush();
 
 	void listPushLeft();
