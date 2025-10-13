@@ -40,6 +40,8 @@ private:
 	
 	std::string input;
 
+	bool mul = false; 
+
 	std::vector<std::string> tokens; 
 			
 	std::map<std::string, std::string> dict;	

@@ -768,10 +768,19 @@ bool Server::commandCenter(int cfd)
 		INCR();
 	} else if (tokens[1] == "5\r\nmulti\r\n")
 	{
+		mul = true; 
 		response = "+OK\r\n";
 	} else if (tokens[1] == "4\r\nexec\r\n")
 	{
-		response = "-ERR EXEC without MULTI\r\n";
+		if (!mul)
+		{
+			response = "-ERR EXEC without MULTI\r\n";
+		} 
+		else 
+		{
+			mul = false;
+			response = "*0\r\n";
+		}
 	}
 
 	return true;
