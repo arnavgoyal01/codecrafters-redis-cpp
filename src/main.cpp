@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <string>
 #include <cstring>
+#include <sstream>
 #include <strings.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -27,9 +28,12 @@ int main(int argc, char **argv)
   std::cerr << std::unitbuf;
 	
 	int port = 6379; 
+	std::string role = "master";
+	
 	if (argc > 1) port = std::stoi(argv[2]); 
+	if (argc > 2) role = "slave"; 
 
-	Server server = Server(port);
+	Server server = Server(port, role);
   
 	server.loop(); 
   return 0;

@@ -27,6 +27,8 @@ class Server
 private:
 	
 	int server_fd; 
+
+	std::string role; 
 	
 	fd_set masterfds;
 	
@@ -72,7 +74,7 @@ private:
 
 public:
 
-	Server(int port);
+	Server(int port, std::string r);
 
 	~Server(); 
 

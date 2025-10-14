@@ -8,13 +8,15 @@
 #include <utility>
 #include <vector>
 
-Server::Server(int port)
+Server::Server(int port, std::string r)
 {
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) 
 	{
    std::cerr << "Failed to create server socket\n";
   }
+
+	role = r;
   
   // Since the tester restarts your program quite often,
 	// setting SO_REUSEADDR
@@ -832,7 +834,8 @@ bool Server::commandCenter(int cfd)
 		response = "-ERR DISCARD without MULTI\r\n";
 	} else if (tokens[1] == "4\r\ninfo\r\n")
 	{
-		response = "$11\r\nrole:master\r\n";
+		auto t = "role:" + role;
+		response = "$" + std::to_string(t.size()) + "\r\n" + t + "\r\n";
 	}
 
 	return true;
