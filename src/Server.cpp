@@ -834,7 +834,8 @@ bool Server::commandCenter(int cfd)
 		response = "-ERR DISCARD without MULTI\r\n";
 	} else if (tokens[1] == "4\r\ninfo\r\n")
 	{
-		auto t = "role:" + role;
+		auto t = "role:" + role + "\r\nmaster_replid:" + master_replid
+			+ "\r\nmaster_repl_offset:" + std::to_string(master_repl_offset);
 		response = "$" + std::to_string(t.size()) + "\r\n" + t + "\r\n";
 	}
 
