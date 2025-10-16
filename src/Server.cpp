@@ -101,7 +101,17 @@ void Server::replicatingMaster(std::string loc)
 		std::cerr << "Error in send\n"; 
 		std::printf("Socket error code %d\n", errno); 
 	}
+	
+	bzero(buffer, sizeof(buffer));
+	num_bytes =
+		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
+	response = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"; 
 
+	if (send(master_fd,response.c_str(), response.size(),0) < 0)
+	{
+		std::cerr << "Error in send\n"; 
+		std::printf("Socket error code %d\n", errno); 
+	}
 }
 
 int Server::getFD()
