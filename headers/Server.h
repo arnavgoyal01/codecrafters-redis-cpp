@@ -26,7 +26,7 @@ class Server
 {
 private:
 	
-	int server_fd; 
+	int server_fd, master_fd, s_port; 
 
 	std::string role;
 

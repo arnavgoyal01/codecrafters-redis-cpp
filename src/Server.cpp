@@ -7,6 +7,7 @@
 #include <map>
 #include <netdb.h>
 #include <string>
+#include <strings.h>
 #include <unistd.h>
 #include <utility>
 #include <vector>
@@ -20,7 +21,7 @@ Server::Server(int port, std::string r)
   }
 
 	role = r;
-  
+	s_port = port; 
   // Since the tester restarts your program quite often,
 	// setting SO_REUSEADDR
   // ensures that we don't run into 'Address already in use' errors
@@ -57,7 +58,7 @@ void Server::replicatingMaster(std::string loc)
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
 
-	int master_fd = socket(AF_INET, SOCK_STREAM, 0);
+	master_fd = socket(AF_INET, SOCK_STREAM, 0);
 
 	char buffer[256];
 
@@ -76,6 +77,31 @@ void Server::replicatingMaster(std::string loc)
 		std::cerr << "Error in send\n"; 
 		std::printf("Socket error code %d\n", errno); 
 	}
+	
+	bzero(buffer, sizeof(buffer));
+	int num_bytes =
+		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
+
+
+	response = "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n" + std::to_string(s_port) + "\r\n"; 
+
+	if (send(master_fd,response.c_str(), response.size(),0) < 0)
+	{
+		std::cerr << "Error in send\n"; 
+		std::printf("Socket error code %d\n", errno); 
+	}
+
+	bzero(buffer, sizeof(buffer));
+	num_bytes =
+		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
+	response = "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"; 
+
+	if (send(master_fd,response.c_str(), response.size(),0) < 0)
+	{
+		std::cerr << "Error in send\n"; 
+		std::printf("Socket error code %d\n", errno); 
+	}
+
 }
 
 int Server::getFD()
