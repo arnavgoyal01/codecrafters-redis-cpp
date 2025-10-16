@@ -908,6 +908,9 @@ bool Server::commandCenter(int cfd)
 	} else if (tokens[1] == "8\r\nreplconf\r\n")
 	{
 		response = "+OK\r\n";
+	} else if (tokens[1] == "5\r\npsync\r\n")
+	{
+		response = "+FULLRESYNC " + master_replid + " " + std::to_string(master_repl_offset) + "\r\n";
 	}
 
 	return true;
