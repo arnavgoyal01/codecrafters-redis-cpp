@@ -82,6 +82,8 @@ public:
 
 	~Server(); 
 
+	void replicatingMaster(std::string loc); 
+
 	int getFD(); 
 
 	bool reInit(); 

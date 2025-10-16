@@ -31,10 +31,14 @@ int main(int argc, char **argv)
 	std::string role = "master";
 	
 	if (argc > 1) port = std::stoi(argv[2]); 
-	if (argc > 2) role = "slave"; 
-
+	if (argc > 3) role = "slave"; 
 	Server server = Server(port, role);
-  
+	if (argc > 3 && (std::string) argv[3] == "--replicaof")
+	{
+		std::string input = argv[4];
+		server.replicatingMaster(input);
+	}
+
 	server.loop(); 
   return 0;
 }

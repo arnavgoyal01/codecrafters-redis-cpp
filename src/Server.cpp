@@ -1,10 +1,13 @@
 #include "../headers/Server.h"
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <map>
+#include <netdb.h>
 #include <string>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -27,8 +30,7 @@ Server::Server(int port, std::string r)
 	{
     std::cerr << "setsockopt failed\n";
   }
-  
-  struct sockaddr_in server_addr;
+	struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
   server_addr.sin_port = htons(port);
@@ -36,14 +38,44 @@ Server::Server(int port, std::string r)
   if (bind(server_fd, (struct sockaddr *) &server_addr,
 					 sizeof(server_addr)) != 0) 
 	{
-    std::cerr << "Failed to bind to port 6379\n";
+    std::cerr << "Failed to bind to port \n";
   }
-  
+		
 	int connection_backlog = 5;
   if (listen(server_fd, connection_backlog) != 0) 
 	{
     std::cerr << "listen failed\n";  
   }
+}
+
+void Server::replicatingMaster(std::string loc)
+{
+	auto hostname = loc.substr(0, loc.find(" ",0)); 
+	std::cout << "ID" << hostname << "ED\n"; 
+	auto portno = std::stoi(loc.substr(loc.find(" ",0)));
+
+	struct sockaddr_in serv_addr;
+	struct hostent *server;
+
+	int master_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+	char buffer[256];
+
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = INADDR_ANY; 
+	serv_addr.sin_port = htons(portno);
+
+	if (connect(master_fd,(struct sockaddr *)
+						 &serv_addr,sizeof(serv_addr)) < 0) std::cerr << "ERROR connecting";
+
+	response = "*1\r\n$4\r\nPING\r\n"; 
+
+	if (send(master_fd,response.c_str(), response.size(),0) < 0)
+	{
+		std::cerr << "Error in send\n"; 
+		std::printf("Socket error code %d\n", errno); 
+	}
 }
 
 int Server::getFD()
