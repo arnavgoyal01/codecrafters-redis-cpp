@@ -905,6 +905,9 @@ bool Server::commandCenter(int cfd)
 		auto t = "role:" + role + "\r\nmaster_replid:" + master_replid
 			+ "\r\nmaster_repl_offset:" + std::to_string(master_repl_offset);
 		response = "$" + std::to_string(t.size()) + "\r\n" + t + "\r\n";
+	} else if (tokens[1] == "8\r\nreplconf\r\n")
+	{
+		response = "+OK\r\n";
 	}
 
 	return true;
