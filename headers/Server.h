@@ -32,7 +32,9 @@ private:
 
 	std::string master_replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"; 
 
-	int master_repl_offset = 0; 
+	int master_repl_offset = 0;
+
+	std::unordered_set<int> replicas; 
 	
 	fd_set masterfds;
 	
@@ -82,7 +84,9 @@ public:
 
 	~Server(); 
 
-	void replicatingMaster(std::string loc); 
+	void replicatingMaster(std::string loc);
+
+	void applyingReplicas(); 
 
 	int getFD(); 
 
