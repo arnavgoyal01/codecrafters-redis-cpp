@@ -86,7 +86,7 @@ public:
 
 	void replicatingMaster(std::string loc);
 
-	void applyingReplicas(); 
+	void applyingReplicas();
 
 	int getFD(); 
 

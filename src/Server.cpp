@@ -52,7 +52,6 @@ Server::Server(int port, std::string r)
 void Server::replicatingMaster(std::string loc)
 {
 	auto hostname = loc.substr(0, loc.find(" ",0)); 
-	std::cout << "ID" << hostname << "ED\n"; 
 	auto portno = std::stoi(loc.substr(loc.find(" ",0)));
 
 	struct sockaddr_in serv_addr;
@@ -83,7 +82,8 @@ void Server::replicatingMaster(std::string loc)
 		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
 
 
-	response = "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n" + std::to_string(s_port) + "\r\n"; 
+	response =
+		"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n" + std::to_string(s_port) + "\r\n"; 
 
 	if (send(master_fd,response.c_str(), response.size(),0) < 0)
 	{
@@ -112,6 +112,8 @@ void Server::replicatingMaster(std::string loc)
 		std::cerr << "Error in send\n"; 
 		std::printf("Socket error code %d\n", errno); 
 	}
+
+	clientfds.push_back(master_fd);
 }
 
 void Server::applyingReplicas()
@@ -1016,6 +1018,7 @@ void Server::loop()
 		getClients(); 
 		controller();
 	}
+
 }
 
 Server::~Server()
