@@ -105,14 +105,13 @@ void Server::replicatingMaster(std::string loc)
 	bzero(buffer, sizeof(buffer));
 	num_bytes =
 		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
-	response = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"; 
-
+	response = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n";
 	if (send(master_fd,response.c_str(), response.size(),0) < 0)
 	{
 		std::cerr << "Error in send\n"; 
 		std::printf("Socket error code %d\n", errno); 
 	}
-
+	response = "";
 	clientfds.push_back(master_fd);
 }
 
@@ -919,8 +918,17 @@ bool Server::commandCenter(int cfd)
 		response = "$" + std::to_string(t.size()) + "\r\n" + t + "\r\n";
 	} else if (tokens[1] == "8\r\nreplconf\r\n")
 	{
-		response = "+OK\r\n";
-		replicas.insert(cfd);
+		std::cout << "True1\n"; 
+		if (role == "master")
+		{
+			response = "+OK\r\n";
+			replicas.insert(cfd);
+		} else // if (tokens[2] == "6\r\ngetack\r\n")
+		{
+			std::cout << "True2\n";
+			response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+		}
+
 	} else if (tokens[1] == "5\r\npsync\r\n")
 	{
 		const std::string EMPTY_RDB = 
