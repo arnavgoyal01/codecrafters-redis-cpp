@@ -960,6 +960,11 @@ bool Server::commandCenter(int cfd)
 		response = "+FULLRESYNC " + master_replid + " " + std::to_string(master_repl_offset) + "\r\n";
 		response += "$" + std::to_string(EMPTY_RDB.size()) + "\r\n" + EMPTY_RDB;
 	}
+	else if (tokens[1] == "4\r\nwait\r\n")
+	{
+		response = ":0\r\n";
+	}
+
 
 	return true;
 }
