@@ -57,7 +57,7 @@ void Server::replicatingMaster(std::string loc)
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
 
-	master_fd = socket(AF_INET, SOCK_STREAM, 0);
+	int master_fd = socket(AF_INET, SOCK_STREAM, 0);
 
 	char buffer[256];
 
@@ -111,6 +111,7 @@ void Server::replicatingMaster(std::string loc)
 		std::cerr << "Error in send\n"; 
 		std::printf("Socket error code %d\n", errno); 
 	}
+
 	response = "";
 	clientfds.push_back(master_fd);
 }
@@ -845,6 +846,8 @@ bool Server::commandCenter(int cfd)
 	if (tokens[1] == "4\r\nping\r\n")
 	{
 		response = "+PONG\r\n";	
+		byte_counter += input.size() * trackingFlag;
+		return !trackingFlag; 
 	} 
 	else if (tokens[1] == "4\r\necho\r\n") 
 	{
@@ -853,7 +856,9 @@ bool Server::commandCenter(int cfd)
 	else if (tokens[1] == "3\r\nset\r\n")
 	{
 		setValue(); 	
-		applyingReplicas(); 
+		applyingReplicas();
+		byte_counter += input.size() * trackingFlag;
+		return !trackingFlag; 
 	} 
 	else if (tokens[1] == "3\r\nget\r\n")
 	{
@@ -866,28 +871,36 @@ bool Server::commandCenter(int cfd)
 	else if (tokens[1] == "6\r\nlrange\r\n")
 	{
 		lrange(); 
-	} else if (tokens[1] == "5\r\nlpush\r\n")
+	} 
+	else if (tokens[1] == "5\r\nlpush\r\n")
 	{
 		listPushLeft();
-	} else if (tokens[1] == "4\r\nllen\r\n")
+	} 
+	else if (tokens[1] == "4\r\nllen\r\n")
 	{
 		getLength();
-	} else if (tokens[1] == "4\r\nlpop\r\n")
+	} 
+	else if (tokens[1] == "4\r\nlpop\r\n")
 	{
 		LPOP();
-	} else if (tokens[1] == "5\r\nblpop\r\n")
+	} 
+	else if (tokens[1] == "5\r\nblpop\r\n")
 	{
 		return BLPOP(cfd);
-	} else if (tokens[1] == "4\r\ntype\r\n")
+	} 
+	else if (tokens[1] == "4\r\ntype\r\n")
 	{
 		TYPE();
-	} else if (tokens[1] == "4\r\nxadd\r\n")
+	} 
+	else if (tokens[1] == "4\r\nxadd\r\n")
 	{
 		XADD();
-	} else if (tokens[1] == "6\r\nxrange\r\n")
+	} 
+	else if (tokens[1] == "6\r\nxrange\r\n")
 	{
 		XRANGE();
-	} else if (tokens[1] == "5\r\nxread\r\n")
+	} 
+	else if (tokens[1] == "5\r\nxread\r\n")
 	{
 		if (tokens[2] == "7\r\nstreams\r\n")
 		{
@@ -898,38 +911,48 @@ bool Server::commandCenter(int cfd)
 			XREAD_BLOCK(cfd); 
 			return false; 
 		}
-	} else if (tokens[1] == "4\r\nincr\r\n")
+	} 
+	else if (tokens[1] == "4\r\nincr\r\n")
 	{
 		INCR();
-	} else if (tokens[1] == "5\r\nmulti\r\n")
+	} 
+	else if (tokens[1] == "5\r\nmulti\r\n")
 	{
 		mul.insert(cfd); 
 		response = "+OK\r\n";
-	} else if (tokens[1] == "4\r\nexec\r\n")
+	} 
+	else if (tokens[1] == "4\r\nexec\r\n")
 	{
 		response = "-ERR EXEC without MULTI\r\n";
-	} else if (tokens[1] == "7\r\ndiscard\r\n")
+	} 
+	else if (tokens[1] == "7\r\ndiscard\r\n")
 	{
 		response = "-ERR DISCARD without MULTI\r\n";
-	} else if (tokens[1] == "4\r\ninfo\r\n")
+	} 
+	else if (tokens[1] == "4\r\ninfo\r\n")
 	{
 		auto t = "role:" + role + "\r\nmaster_replid:" + master_replid
 			+ "\r\nmaster_repl_offset:" + std::to_string(master_repl_offset);
 		response = "$" + std::to_string(t.size()) + "\r\n" + t + "\r\n";
-	} else if (tokens[1] == "8\r\nreplconf\r\n")
-	{
-		std::cout << "True1\n"; 
+	} 
+	else if (tokens[1] == "8\r\nreplconf\r\n")
+	{ 
 		if (role == "master")
 		{
 			response = "+OK\r\n";
 			replicas.insert(cfd);
-		} else // if (tokens[2] == "6\r\ngetack\r\n")
-		{
-			std::cout << "True2\n";
-			response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
-		}
+		} 
 
-	} else if (tokens[1] == "5\r\npsync\r\n")
+		else if (tokens[2] == "6\r\ngetack\r\n")
+		{
+			trackingFlag = 1; 
+			auto b = std::to_string(byte_counter); 
+			response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$"
+				+ std::to_string(b.size()) +"\r\n"+ b +"\r\n";
+			byte_counter += input.size() * trackingFlag;
+		}
+	} 
+	else if (tokens[1] == "5\r\npsync\r\n")
 	{
 		const std::string EMPTY_RDB = 
 			"\x52\x45\x44\x49\x53\x30\x30\x31\x31\xfa\x09\x72\x65\x64\x69\x73\x2d\x76\x65\x72\x05\x37\x2e\x32\x2e\x30\xfa\x0a\x72\x65\x64\x69\x73\x2d\x62\x69\x74\x73\xc0\x40\xfa\x05\x63\x74\x69\x6d\x65\xc2\x6d\x08\xbc\x65\xfa\x08\x75\x73\x65\x64\x2d\x6d\x65\x6d\xc2\xb0\xc4\x10\x00\xfa\x08\x61\x6f\x66\x2d\x62\x61\x73\x65\xc0\x00\xff\xf0\x6e\x3b\xfe\xc0\xff\x5a\xa2"; 

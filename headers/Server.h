@@ -26,7 +26,11 @@ class Server
 {
 private:
 	
-	int server_fd, master_fd, s_port; 
+	int server_fd, s_port; 
+
+	int byte_counter = 0;
+
+	int trackingFlag = 0; 
 
 	std::string role;
 
