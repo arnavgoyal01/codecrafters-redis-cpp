@@ -962,7 +962,7 @@ bool Server::commandCenter(int cfd)
 	}
 	else if (tokens[1] == "4\r\nwait\r\n")
 	{
-		response = ":0\r\n";
+		response = ":" + std::to_string(replicas.size()) + "\r\n";
 	}
 
 
