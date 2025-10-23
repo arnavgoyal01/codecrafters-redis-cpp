@@ -841,6 +841,76 @@ void Server::MULTI(int cfd)
 
 }
 
+void Server::WAIT()
+{	
+	fd_set tempfds; 
+	std::vector<int> temps; 
+	temps.assign(replicas.begin(), replicas.end()); 
+	auto maxfd = server_fd; 
+	
+	auto start = tokens[2].find("\r\n",0) + 2; 
+	auto end = tokens[2].find("\r\n",start); 
+	auto num = std::stoi(tokens[2].substr(start, end - start));
+
+	start = tokens[3].find("\r\n",0) + 2; 
+	end = tokens[3].find("\r\n",start); 
+	auto wait = std::stoi(tokens[3].substr(start, end - start));
+	auto wait_time = std::chrono::milliseconds(wait); 
+
+	auto now_time = std::chrono::system_clock::now(); 
+	auto limit = now_time + wait_time; 
+
+	auto current = 0; 
+	int activity;
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+
+	auto spark = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n"; 
+	
+	for (auto rfd : temps) 
+	{
+		sendData(rfd, spark);
+	}	
+
+	while (current < num && now_time < limit)
+	{
+		FD_ZERO(&tempfds); 
+		FD_SET(server_fd, &tempfds);
+		for (auto rfd : temps) 
+		{
+			FD_SET(rfd, &tempfds);
+			if (rfd > maxfd) maxfd = rfd;
+		}
+		activity = select(maxfd + 1, &tempfds, NULL, NULL, &tv); 
+
+		if (activity < 0) 
+		{
+			std::cerr << "select error\n"; 
+			std::cout << "Error code: " << errno <<  "\n"; 
+			break; 
+		} 
+
+		int i = 0; 
+
+		while (i < temps.size())
+		{
+			if (FD_ISSET(temps[i], &tempfds))
+			{
+				int num_bytes = recv(temps[i], buffer, sizeof(buffer) - 1, 0);
+				current += 1;
+				temps.erase(temps.begin() + i); 
+				i--; 
+			}
+			
+			i++;
+		}
+		now_time = std::chrono::system_clock::now(); 
+	}
+	response = ":" + std::to_string(current) + "\r\n";
+
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (tokens[1] == "4\r\nping\r\n")
@@ -856,6 +926,7 @@ bool Server::commandCenter(int cfd)
 	else if (tokens[1] == "3\r\nset\r\n")
 	{
 		setValue(); 	
+		offsetUnChanged = false;
 		applyingReplicas();
 		byte_counter += input.size() * trackingFlag;
 		return !trackingFlag; 
@@ -962,7 +1033,12 @@ bool Server::commandCenter(int cfd)
 	}
 	else if (tokens[1] == "4\r\nwait\r\n")
 	{
-		response = ":" + std::to_string(replicas.size()) + "\r\n";
+		if (offsetUnChanged) response = ":"
+													+ std::to_string(replicas.size()) + "\r\n";
+		else
+		{
+			WAIT(); 
+		}
 	}
 
 
