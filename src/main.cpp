@@ -29,10 +29,21 @@ int main(int argc, char **argv)
 	
 	int port = 6379; 
 	std::string role = "master";
+	std::string dir = "";
+	std::string dbfilename = ""; 
+
+	int i = 1; 
+
+	while (i < argc)
+	{
+		if ((std::string) argv[i] == "--port") port = std::stoi(argv[2]);
+    if ((std::string) argv[i] == "--replicaof") role = "slave";	
+		if ((std::string) argv[i] == "--dir") dir = argv[i+1];
+		if ((std::string) argv[i] == "--dbfilename") dbfilename = argv[i+1];
+		i += 2;
+	}
 	
-	if (argc > 1) port = std::stoi(argv[2]); 
-	if (argc > 3) role = "slave"; 
-	Server server = Server(port, role);
+	Server server = Server(port, role, dir, dbfilename);
 	if (argc > 3 && (std::string) argv[3] == "--replicaof")
 	{
 		std::string input = argv[4];

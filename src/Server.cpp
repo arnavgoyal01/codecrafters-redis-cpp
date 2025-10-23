@@ -12,7 +12,8 @@
 #include <utility>
 #include <vector>
 
-Server::Server(int port, std::string r)
+Server::Server(int port, std::string r, std::string dir
+							 , std::string dbfilename)
 {
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) 
@@ -22,6 +23,8 @@ Server::Server(int port, std::string r)
 
 	role = r;
 	s_port = port; 
+	config["dir"] = dir;
+	config["dbfilename"] = dbfilename;
   // Since the tester restarts your program quite often,
 	// setting SO_REUSEADDR
   // ensures that we don't run into 'Address already in use' errors
@@ -1040,7 +1043,17 @@ bool Server::commandCenter(int cfd)
 			WAIT(); 
 		}
 	}
+	else if (tokens[1] == "6\r\nconfig\r\n")
+	{
+		auto start = tokens[3].find("\r\n", 0) + 2; 
+		auto end = tokens[3].find("\r\n", start);
+		auto field = tokens[3].substr(start, end - start); 
+		auto value = config[field]; 
 
+		response = "*2\r\n$" + std::to_string(end - start)
+						+ "\r\n" + field + "\r\n$"
+						+ std::to_string(value.size()) + "\r\n" + value + "\r\n"; 
+	}
 
 	return true;
 }
