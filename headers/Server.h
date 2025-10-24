@@ -100,6 +100,8 @@ public:
 	int getFD(); 
 
 	bool reInit(); 
+	
+	void readingDB(); 
 
 	void getClients(); 
 

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <netdb.h>
@@ -25,7 +26,8 @@ Server::Server(int port, std::string r, std::string dir
 	s_port = port; 
 	config["dir"] = dir;
 	config["dbfilename"] = dbfilename;
-  // Since the tester restarts your program quite often,
+	// std::cout << (std::string) arr;
+	// Since the tester restarts your program quite often,
 	// setting SO_REUSEADDR
   // ensures that we don't run into 'Address already in use' errors
   int reuse = 1;
@@ -50,6 +52,49 @@ Server::Server(int port, std::string r, std::string dir
 	{
     std::cerr << "listen failed\n";  
   }
+}
+
+void Server::readingDB()
+{
+
+	auto filename = config["dir"] + "/" + config["dbfilename"]; 
+	std::ifstream inputFile(filename, std::ifstream::binary);
+	if (!inputFile.is_open()) return; 
+	
+	char c;
+	bool flag = false; 
+	std::vector<char> chars;
+	while (inputFile.get(c))
+	{
+		if (flag) chars.push_back(c);	
+		auto cha = static_cast<unsigned char>(c);
+
+		if (cha == 0xFB)
+		{
+			flag = true;		
+		}
+		if (cha == 0xFF)
+		{
+			flag = false;
+			chars.erase(chars.end());
+			break;
+		}
+	}
+	int first_length = static_cast<int>(chars[3]); 
+	std::string key = ""; 
+	for (int i = 4; i < 4 + first_length; i++) key += chars[i];	
+
+	int second_length = static_cast<int>(chars[4 + first_length]); 
+	std::string value = ""; 
+	for (int i = 5 + first_length;
+				i < 5 + first_length + second_length;
+				i++) value += chars[i]; 
+
+	std::cout << "Key: " << key << " Value: " << value << "\n";
+	key = std::to_string(key.size()) + "\r\n" + key + "\r\n"; 
+	value = std::to_string(value.size()) + "\r\n" + value + "\r\n"; 
+	dict[key] = value; 
+
 }
 
 void Server::replicatingMaster(std::string loc)
@@ -1054,7 +1099,11 @@ bool Server::commandCenter(int cfd)
 						+ "\r\n" + field + "\r\n$"
 						+ std::to_string(value.size()) + "\r\n" + value + "\r\n"; 
 	}
-
+	else if (tokens[1] == "4\r\nkeys\r\n")
+	{
+		readingDB(); 	
+		response = "*1\r\n$" + dict.begin()->first; 
+	}
 	return true;
 }
 
