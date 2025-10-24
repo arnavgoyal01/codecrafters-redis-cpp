@@ -101,7 +101,7 @@ public:
 
 	bool reInit(); 
 	
-	void readingDB(); 
+	void readingDB(std::ifstream& inputFile); 
 
 	void getClients(); 
 

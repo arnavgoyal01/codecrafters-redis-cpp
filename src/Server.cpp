@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <utility>
 #include <vector>
+#include <filesystem>
 
 Server::Server(int port, std::string r, std::string dir
 							 , std::string dbfilename)
@@ -26,6 +27,13 @@ Server::Server(int port, std::string r, std::string dir
 	s_port = port; 
 	config["dir"] = dir;
 	config["dbfilename"] = dbfilename;
+	auto filename = config["dir"] + "/" + config["dbfilename"]; 
+	std::ifstream inputFile(filename, std::ifstream::binary);	
+	if (inputFile.good() && !(dbfilename == "")) 
+	{
+		std::cout << filename << " True\n";
+		readingDB(inputFile);
+	}
 	// std::cout << (std::string) arr;
 	// Since the tester restarts your program quite often,
 	// setting SO_REUSEADDR
@@ -54,13 +62,8 @@ Server::Server(int port, std::string r, std::string dir
   }
 }
 
-void Server::readingDB()
+void Server::readingDB(std::ifstream& inputFile)
 {
-
-	auto filename = config["dir"] + "/" + config["dbfilename"]; 
-	std::ifstream inputFile(filename, std::ifstream::binary);
-	if (!inputFile.is_open()) return; 
-	
 	char c;
 	bool flag = false; 
 	std::vector<char> chars;
@@ -80,6 +83,7 @@ void Server::readingDB()
 			break;
 		}
 	}
+	inputFile.close();
 	int first_length = static_cast<int>(chars[3]); 
 	std::string key = ""; 
 	for (int i = 4; i < 4 + first_length; i++) key += chars[i];	
@@ -1100,8 +1104,7 @@ bool Server::commandCenter(int cfd)
 						+ std::to_string(value.size()) + "\r\n" + value + "\r\n"; 
 	}
 	else if (tokens[1] == "4\r\nkeys\r\n")
-	{
-		readingDB(); 	
+	{ 	
 		response = "*1\r\n$" + dict.begin()->first; 
 	}
 	return true;
@@ -1153,7 +1156,6 @@ void Server::sendData(int& i, std::string r)
 void Server::controller()
 {		
 	bzero(buffer, 256);
-
 	int i = 0;
 
 	while (i < clientfds.size())
