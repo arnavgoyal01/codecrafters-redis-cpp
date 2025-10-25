@@ -84,7 +84,7 @@ void Server::readingDB(std::ifstream& inputFile)
 	inputFile.close();
 	int normal_size = static_cast<int>(chars[0]);
 	int expiry_size = static_cast<int>(chars[1]);
-	int i = 3;
+	int i = 2;
 	int first_length;
 	std::string key;	
 	int second_length;
@@ -93,6 +93,29 @@ void Server::readingDB(std::ifstream& inputFile)
 
 	while (count < normal_size)
 	{
+		auto cha = static_cast<unsigned char>(chars[i]); 
+		uint64_t time = 0;
+
+		if (cha == 0xFC) 
+		{
+			i++;
+			uint64_t t;
+			char buf[sizeof(t)]; 
+			std::copy(chars.begin() + i, chars.begin() + i + sizeof(t), (char *) &t);
+			time = t; 
+			i += sizeof(t);  
+		}
+		else if (cha == 0xFD) 
+		{
+			i++;
+			uint32_t t;
+			char buf[sizeof(t)]; 
+			std::copy(chars.begin() + i, chars.begin() + i + sizeof(t), (char *) &t);
+			time = t * 1000; 
+			i += sizeof(t);  
+		}
+		
+		i++; 
 		first_length = static_cast<int>(chars[i]);
 		i++; 
 		key = "";
@@ -103,13 +126,19 @@ void Server::readingDB(std::ifstream& inputFile)
 		value = ""; 
 		for (int j = i + first_length;
 					j < i + first_length + second_length;
-					j++) value += chars[j]; 
+					j++) value += chars[j];
 		key = std::to_string(key.size()) + "\r\n" + key + "\r\n"; 
 		value = std::to_string(value.size()) + "\r\n" + value + "\r\n"; 
 		dict[key] = value;
+		if (time)
+		{
+			std::chrono::milliseconds duration(time);	
+			std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> time_pt(duration);
+			times[key] = time_pt;
+		} 
 		i += first_length + second_length;
-		i++;
 		count++; 
+		std::cout << "I " << i << "\n"; 
 	}
 }
 
