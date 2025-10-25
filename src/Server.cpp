@@ -29,11 +29,8 @@ Server::Server(int port, std::string r, std::string dir
 	config["dbfilename"] = dbfilename;
 	auto filename = config["dir"] + "/" + config["dbfilename"]; 
 	std::ifstream inputFile(filename, std::ifstream::binary);	
-	if (inputFile.good() && !(dbfilename == "")) 
-	{
-		std::cout << filename << " True\n";
-		readingDB(inputFile);
-	}
+	if (inputFile.good() && !(filename == "/")) readingDB(inputFile);
+
 	// std::cout << (std::string) arr;
 	// Since the tester restarts your program quite often,
 	// setting SO_REUSEADDR
@@ -83,22 +80,37 @@ void Server::readingDB(std::ifstream& inputFile)
 			break;
 		}
 	}
+
 	inputFile.close();
-	int first_length = static_cast<int>(chars[3]); 
-	std::string key = ""; 
-	for (int i = 4; i < 4 + first_length; i++) key += chars[i];	
+	int normal_size = static_cast<int>(chars[0]);
+	int expiry_size = static_cast<int>(chars[1]);
+	int i = 3;
+	int first_length;
+	std::string key;	
+	int second_length;
+	std::string value;	
+	int count = 0; 
 
-	int second_length = static_cast<int>(chars[4 + first_length]); 
-	std::string value = ""; 
-	for (int i = 5 + first_length;
-				i < 5 + first_length + second_length;
-				i++) value += chars[i]; 
-
-	std::cout << "Key: " << key << " Value: " << value << "\n";
-	key = std::to_string(key.size()) + "\r\n" + key + "\r\n"; 
-	value = std::to_string(value.size()) + "\r\n" + value + "\r\n"; 
-	dict[key] = value; 
-
+	while (count < normal_size)
+	{
+		first_length = static_cast<int>(chars[i]);
+		i++; 
+		key = "";
+		for (int j = i; j < i + first_length; j++) key += chars[j];	
+				
+		second_length = static_cast<int>(chars[i + first_length]);
+		i++; 
+		value = ""; 
+		for (int j = i + first_length;
+					j < i + first_length + second_length;
+					j++) value += chars[j]; 
+		key = std::to_string(key.size()) + "\r\n" + key + "\r\n"; 
+		value = std::to_string(value.size()) + "\r\n" + value + "\r\n"; 
+		dict[key] = value;
+		i += first_length + second_length;
+		i++;
+		count++; 
+	}
 }
 
 void Server::replicatingMaster(std::string loc)
@@ -1104,8 +1116,9 @@ bool Server::commandCenter(int cfd)
 						+ std::to_string(value.size()) + "\r\n" + value + "\r\n"; 
 	}
 	else if (tokens[1] == "4\r\nkeys\r\n")
-	{ 	
-		response = "*1\r\n$" + dict.begin()->first; 
+	{ 
+		response = "*" + std::to_string(dict.size()) + "\r\n"; 
+		for (auto p : dict) response += "$" + p.first;
 	}
 	return true;
 }
