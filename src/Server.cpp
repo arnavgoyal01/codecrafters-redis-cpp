@@ -1176,6 +1176,15 @@ bool Server::commandCenter(int cfd)
 	}
 	else if (tokens[1] == "7\r\npublish\r\n")
 	{
+		auto r = "*3\r\n$7\r\nmessage\r\n$" + tokens[2] + "$" + tokens[3]; 
+		for (auto it = channel_subscribers[tokens[2]].begin();
+					it != channel_subscribers[tokens[2]].end(); 
+						it++)
+		{
+			int i = *it; 
+			sendData(i, r);
+		}
+		
 		response = ":" + std::to_string(channel_subscribers[tokens[2]].size()) + "\r\n"; 
 	}
 	return true;
