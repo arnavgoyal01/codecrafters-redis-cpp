@@ -42,7 +42,10 @@ private:
 
 	int master_repl_offset = 0;
 
-	std::unordered_set<int> replicas; 
+	std::unordered_set<int> replicas;
+
+	std::map<int,
+		std::unordered_set<std::string>> subscribed_channels;
 	
 	fd_set masterfds;
 	

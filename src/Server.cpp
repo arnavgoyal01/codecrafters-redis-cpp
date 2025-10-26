@@ -1152,7 +1152,16 @@ bool Server::commandCenter(int cfd)
 	}
 	else if (tokens[1] == "9\r\nsubscribe\r\n")
 	{
-		response = "*3\r\n$" + tokens[1] + "$" + tokens[2] + ":1\r\n";
+		auto& sc = subscribed_channels[cfd]; 
+		if (sc.find(tokens[2]) != sc.end())
+		{
+			response = "*3\r\n$" + tokens[1] + "$" + tokens[2] + ":" + std::to_string(sc.size()) + "\r\n";
+		}
+		else 
+		{
+			sc.insert(tokens[2]);
+			response = "*3\r\n$" + tokens[1] + "$" + tokens[2] + ":" + std::to_string(sc.size()) + "\r\n";
+		}
 	}
 	return true;
 }
