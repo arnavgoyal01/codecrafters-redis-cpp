@@ -1190,6 +1190,13 @@ bool Server::commandCenter(int cfd)
 		
 		response = ":" + std::to_string(channel_subscribers[tokens[2]].size()) + "\r\n"; 
 	}
+	else if (tokens[1] == "11\r\nunsubscribe\r\n")
+	{
+		subscribed_channels[cfd].erase(tokens[2]); 
+		channel_subscribers[tokens[2]].erase(cfd); 
+		response = "3\r\n$" + tokens[1] + "$" + tokens[2] + ":" + 
+			std::to_string(subscribed_channels[cfd].size()) + "\r\n"; 
+	}
 	return true;
 }
 
