@@ -1006,6 +1006,15 @@ void Server::WAIT()
 
 bool Server::commandCenter(int cfd)
 {
+	if (subsciber_mode && allowed_commands.find(tokens[1]) == allowed_commands.end())
+	{
+		auto start = tokens[1].find("\r\n",0) + 2;
+		auto end = tokens[1].find("\r\n",start); 
+		auto command = tokens[1].substr(start, end - start); 
+		response = "-ERR Can't execute '" + command + "': only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context\r\n";
+		return true;
+	}
+
 	if (tokens[1] == "4\r\nping\r\n")
 	{
 		response = "+PONG\r\n";	
@@ -1152,6 +1161,7 @@ bool Server::commandCenter(int cfd)
 	}
 	else if (tokens[1] == "9\r\nsubscribe\r\n")
 	{
+		subsciber_mode = true;
 		auto& sc = subscribed_channels[cfd]; 
 		if (sc.find(tokens[2]) != sc.end())
 		{
