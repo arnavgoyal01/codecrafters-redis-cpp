@@ -44,8 +44,6 @@ private:
 
 	std::unordered_set<int> replicas;
 
-	bool subsciber_mode = false; 
-
 	std::unordered_set<std::string> allowed_commands 
 		= { "4\r\nping\r\n", "4\r\nquit\r\n", "9\r\nsubscribe\r\n"
 				, "10\r\npsubscribe\r\n", "12\r\npunsubscribe\r\n"

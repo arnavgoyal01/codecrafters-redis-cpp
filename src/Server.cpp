@@ -1006,7 +1006,8 @@ void Server::WAIT()
 
 bool Server::commandCenter(int cfd)
 {
-	if (subsciber_mode && allowed_commands.find(tokens[1]) == allowed_commands.end())
+	if (subscribed_channels.find(cfd) != subscribed_channels.end()
+				&& allowed_commands.find(tokens[1]) == allowed_commands.end())
 	{
 		auto start = tokens[1].find("\r\n",0) + 2;
 		auto end = tokens[1].find("\r\n",start); 
@@ -1017,7 +1018,8 @@ bool Server::commandCenter(int cfd)
 
 	if (tokens[1] == "4\r\nping\r\n")
 	{
-		response = "+PONG\r\n";	
+		response = "+PONG\r\n";
+		if (subscribed_channels.find(cfd) != subscribed_channels.end()) response = "*2\r\n$4\r\npong\r\n$0\r\n\r\n";
 		byte_counter += input.size() * trackingFlag;
 		return !trackingFlag; 
 	} 
@@ -1161,7 +1163,6 @@ bool Server::commandCenter(int cfd)
 	}
 	else if (tokens[1] == "9\r\nsubscribe\r\n")
 	{
-		subsciber_mode = true;
 		auto& sc = subscribed_channels[cfd]; 
 		if (sc.find(tokens[2]) != sc.end())
 		{
