@@ -138,7 +138,6 @@ void Server::readingDB(std::ifstream& inputFile)
 		} 
 		i += first_length + second_length;
 		count++; 
-		std::cout << "I " << i << "\n"; 
 	}
 }
 
@@ -1163,7 +1162,7 @@ bool Server::commandCenter(int cfd)
 	}
 	else if (tokens[1] == "9\r\nsubscribe\r\n")
 	{
-		auto& sc = subscribed_channels[cfd]; 
+		auto& sc = subscribed_channels[cfd];
 		if (sc.find(tokens[2]) != sc.end())
 		{
 			response = "*3\r\n$" + tokens[1] + "$" + tokens[2] + ":" + std::to_string(sc.size()) + "\r\n";
@@ -1171,8 +1170,13 @@ bool Server::commandCenter(int cfd)
 		else 
 		{
 			sc.insert(tokens[2]);
+			channel_subscribers[tokens[2]].insert(cfd);
 			response = "*3\r\n$" + tokens[1] + "$" + tokens[2] + ":" + std::to_string(sc.size()) + "\r\n";
 		}
+	}
+	else if (tokens[1] == "7\r\npublish\r\n")
+	{
+		response = ":" + std::to_string(channel_subscribers[tokens[2]].size()) + "\r\n"; 
 	}
 	return true;
 }

@@ -52,6 +52,9 @@ private:
 	std::map<int,
 		std::unordered_set<std::string>> subscribed_channels;
 	
+	std::map<std::string,
+		std::unordered_set<int>> channel_subscribers;
+
 	fd_set masterfds;
 	
 	int maxfd;
