@@ -1149,6 +1149,10 @@ bool Server::commandCenter(int cfd)
 		response = "*" + std::to_string(dict.size()) + "\r\n"; 
 		for (auto p : dict) response += "$" + p.first;
 	}
+	else if (tokens[1] == "9\r\nsubscribe\r\n")
+	{
+		response = "*3\r\n$" + tokens[1] + "$" + tokens[2] + ":1\r\n";
+	}
 	return true;
 }
 
