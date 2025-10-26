@@ -1111,14 +1111,17 @@ bool Server::commandCenter(int cfd)
 	} 
 	else if (tokens[1] == "8\r\nreplconf\r\n")
 	{ 
+		std::cout << "o1\n"; 
 		if (role == "master")
 		{
+			std::cout << "o2\n"; 
 			response = "+OK\r\n";
 			replicas.insert(cfd);
 		} 
 
 		else if (tokens[2] == "6\r\ngetack\r\n")
 		{
+			std::cout << "o3\n"; 
 			std::cout << "Got here\n";
 			trackingFlag = 1; 
 			auto b = std::to_string(byte_counter); 
