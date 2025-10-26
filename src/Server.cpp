@@ -1109,6 +1109,7 @@ bool Server::commandCenter(int cfd)
 
 		else if (tokens[2] == "6\r\ngetack\r\n")
 		{
+			std::cout << "Got here\n";
 			trackingFlag = 1; 
 			auto b = std::to_string(byte_counter); 
 			response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$"
