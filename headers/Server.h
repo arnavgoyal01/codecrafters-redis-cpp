@@ -36,6 +36,9 @@ private:
 
 	std::string role;
 
+	std::map<std::string, 
+		std::map<float, std::string>> sorted_sets; 
+
 	std::map<std::string, std::string> config;
 
 	std::string master_replid = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"; 
@@ -146,7 +149,9 @@ public:
 
 	void XRANGE();	
 
-	void XREAD(); 
+	void XREAD();
+
+	void ZADD(); 
 	
 	void XREAD_BLOCK(int cfd); 
 

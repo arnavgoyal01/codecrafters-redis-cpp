@@ -1003,6 +1003,20 @@ void Server::WAIT()
 
 }
 
+void Server::ZADD()
+{
+	auto key = tokens[2]; 
+	auto start = tokens[3].find("\r\n",0) + 2; 
+	auto end = tokens[3].find("\r\n",start); 
+	auto val = std::stof(tokens[3].substr(start,end - start)); 
+	sorted_sets[key][val] = tokens[4]; 
+
+	auto size = sorted_sets[key].size(); 
+
+	response = ":" + std::to_string(size) + "\r\n"; 
+
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
@@ -1196,6 +1210,10 @@ bool Server::commandCenter(int cfd)
 		channel_subscribers[tokens[2]].erase(cfd); 
 		response = "*3\r\n$" + tokens[1] + "$" + tokens[2] + ":" + 
 			std::to_string(subscribed_channels[cfd].size()) + "\r\n"; 
+	}
+	else if (tokens[1] == "4\r\nzadd\r\n")
+	{
+		ZADD(); 
 	}
 	return true;
 }
