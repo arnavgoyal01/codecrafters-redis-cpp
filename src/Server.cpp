@@ -282,6 +282,8 @@ void Server::setValue()
 	
 	if (tokens.size() > 4)
 	{
+		std::cout << "Got here2\n"; 
+		std::cout << "ID " << tokens[5] << " ED"; 
 		size_t p1 = tokens[5].find("\r\n",0);
 		int length = std::stoi(tokens[5].substr(0,p1));
 		int duration = std::stoi(tokens[5].substr(p1 + 2, length)); 
