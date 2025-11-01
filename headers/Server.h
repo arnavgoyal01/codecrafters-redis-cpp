@@ -21,6 +21,7 @@
 #include <chrono>
 #include <queue>
 #include <unordered_set>
+#include <set>
 
 class Server 
 {
@@ -37,7 +38,10 @@ private:
 	std::string role;
 
 	std::map<std::string, 
-		std::map<float, std::string>> sorted_sets; 
+		std::map<std::string, float>> sorted_sets;
+
+	std::map<std::string,
+		std::set<std::pair<float, std::string>>> set_ordering; 
 
 	std::map<std::string, std::string> config;
 

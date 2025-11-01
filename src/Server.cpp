@@ -1008,12 +1008,22 @@ void Server::ZADD()
 	auto key = tokens[2]; 
 	auto start = tokens[3].find("\r\n",0) + 2; 
 	auto end = tokens[3].find("\r\n",start); 
-	auto val = std::stof(tokens[3].substr(start,end - start)); 
-	sorted_sets[key][val] = tokens[4]; 
+	auto val = std::stof(tokens[3].substr(start,end - start));
+	std::string r = "1"; 
 
-	auto size = sorted_sets[key].size(); 
+	if (sorted_sets[key].find(tokens[4]) != sorted_sets[key].end())
+	{
+		auto old_val = sorted_sets[key][tokens[4]];
+		std::pair<float, std::string> p = { old_val, tokens[4] }; 
+		set_ordering[key].erase(p);
+		r = "0"; 
+	}
 
-	response = ":" + std::to_string(size) + "\r\n"; 
+	sorted_sets[key][tokens[4]] = val; 
+	std::pair<float, std::string> q = { val, tokens[4] };
+	set_ordering[key].insert(q);
+		
+	response = ":" + r + "\r\n"; 
 
 }
 
