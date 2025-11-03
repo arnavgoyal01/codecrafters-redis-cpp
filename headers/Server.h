@@ -155,7 +155,9 @@ public:
 
 	void XREAD();
 
-	void ZADD(); 
+	void ZADD();
+
+	void ZRANK(); 
 	
 	void XREAD_BLOCK(int cfd); 
 

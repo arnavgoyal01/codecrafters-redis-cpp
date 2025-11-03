@@ -1013,20 +1013,46 @@ void Server::ZADD()
 	auto val = std::stof(tokens[3].substr(start,end - start));
 	std::string r = "1"; 
 
-	if (sorted_sets[key].find(tokens[4]) != sorted_sets[key].end())
+	start = tokens[4].find("\r\n",0) + 2; 
+	end = tokens[4].find("\r\n",start); 
+	auto label = tokens[4].substr(start,end - start); 
+
+	if (sorted_sets[key].find(label) != sorted_sets[key].end())
 	{
-		auto old_val = sorted_sets[key][tokens[4]];
-		std::pair<float, std::string> p = { old_val, tokens[4] }; 
+		auto old_val = sorted_sets[key][label];
+		std::pair<float, std::string> p = { old_val, label }; 
 		set_ordering[key].erase(p);
 		r = "0"; 
 	}
-
-	sorted_sets[key][tokens[4]] = val; 
-	std::pair<float, std::string> q = { val, tokens[4] };
+	
+	sorted_sets[key][label] = val; 
+	std::pair<float, std::string> q = { val, label };
 	set_ordering[key].insert(q);
 		
 	response = ":" + r + "\r\n"; 
 
+}
+
+void Server::ZRANK()
+{
+	if (set_ordering.find(tokens[2]) == set_ordering.end())
+	{
+		response = "$-1\r\n";	
+		return;
+	}
+
+	auto comp = set_ordering[tokens[2]].key_comp(); 
+	auto it = set_ordering[tokens[2]].begin(); 
+	auto end = *set_ordering[tokens[2]].rbegin(); 
+	
+	int c = 0; 
+	auto start = tokens[3].find("\r\n",0) + 2; 
+	auto send = tokens[3].find("\r\n",start); 
+	auto label = tokens[3].substr(start,send - start); 
+
+	for (auto i = set_ordering[tokens[2]].begin(); i->second != label & i != set_ordering[tokens[2]].end(); i++) c++;
+	response = ":" + std::to_string(c) + "\r\n"; 
+	if (c == set_ordering[tokens[2]].size()) response = "$-1\r\n";
 }
 
 bool Server::commandCenter(int cfd)
@@ -1226,6 +1252,10 @@ bool Server::commandCenter(int cfd)
 	else if (tokens[1] == "4\r\nzadd\r\n")
 	{
 		ZADD(); 
+	}
+	else if (tokens[1] == "5\r\nzrank\r\n")
+	{
+		ZRANK();
 	}
 	return true;
 }
