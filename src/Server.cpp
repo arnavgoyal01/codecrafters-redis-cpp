@@ -283,7 +283,7 @@ void Server::setValue()
 	if (tokens.size() > 4)
 	{
 		std::cout << "Got here2\n"; 
-		std::cout << "ID " << tokens[5] << " ED"; 
+		for (auto i : tokens) std::cout << "ID " << i << " ED\n"; 
 		size_t p1 = tokens[5].find("\r\n",0);
 		int length = std::stoi(tokens[5].substr(0,p1));
 		int duration = std::stoi(tokens[5].substr(p1 + 2, length)); 
@@ -563,16 +563,16 @@ void Server::TYPE()
 {
 	if (dict.find(tokens[2]) != dict.end())
 	{
-		response = "$6\r\nstring\r\n";
+		response = "+string\r\n";
 	} else if (lists.find(tokens[2]) != lists.end())
 	{
-		response = "$4\r\nlist\r\n";
+		response = "+list\r\n";
 	} else if (streams.find(tokens[2]) != streams.end())
 	{
-		response = "$6\r\nstream\r\n";
+		response = "+stream\r\n";
 	} else
 	{
-		response = "$4\r\nnone\r\n";
+		response = "+none\r\n";
 	}
 }
 
@@ -1077,7 +1077,11 @@ void Server::ZRANGE()
 	if (lower_bound > ordering.size() || lower_bound > upper_bound)
 	{
 		return; 
-	} else if (upper_bound > ordering.size()) upper_bound = ordering.size(); 
+	} 
+	else if (upper_bound > ordering.size()) 
+	{
+		upper_bound = ordering.size() - 1;	
+	} 
 
 	auto i = lower_bound;
 	response = "*" + std::to_string(upper_bound - lower_bound + 1) + "\r\n"; 
@@ -1085,6 +1089,7 @@ void Server::ZRANGE()
 	{
 		auto it = std::next(ordering.begin(), i); 
 		std::string label = it->second;
+		std::cout << "ID: " << label << " ED\n"; 
 		response += "$" + std::to_string(label.size()) + "\r\n" + label + "\r\n"; 
 		i++;
 	}
