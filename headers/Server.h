@@ -159,7 +159,9 @@ public:
 
 	void ZRANK(); 
 
-	void ZRANGE(); 
+	void ZRANGE();
+
+	void ZCARD(); 
 
 	void XREAD_BLOCK(int cfd); 
 

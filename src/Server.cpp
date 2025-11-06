@@ -7,6 +7,7 @@
 #include <iostream>
 #include <map>
 #include <netdb.h>
+#include <set>
 #include <string>
 #include <strings.h>
 #include <unistd.h>
@@ -1100,6 +1101,18 @@ void Server::ZRANGE()
 
 }
 
+void Server::ZCARD()
+{
+	auto key = tokens[2]; 
+	if (set_ordering.find(key) == set_ordering.end()) 
+	{
+		response = "+0\r\n"; 
+	}
+
+	auto o = set_ordering[key]; 
+	response = ":" + std::to_string(o.size()) + "\r\n"; 
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
@@ -1305,6 +1318,10 @@ bool Server::commandCenter(int cfd)
 	else if(tokens[1] == "6\r\nzrange\r\n")
 	{
 		ZRANGE(); 
+	}
+	else if(tokens[1] == "5\r\nzcard\r\n")
+	{
+		ZCARD();
 	}
 	return true;
 }
