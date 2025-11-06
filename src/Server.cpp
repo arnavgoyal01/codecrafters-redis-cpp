@@ -1068,11 +1068,15 @@ void Server::ZRANGE()
 	auto ordering = set_ordering[key]; 
 	auto start = tokens[3].find("\r\n",0) + 2; 
 	auto end = tokens[3].find("\r\n",start); 
-	auto lower_bound = std::stoi(tokens[3].substr(start, end - start)); 
+	auto lower_bound = std::stoi(tokens[3].substr(start, end - start));
+	if (lower_bound < 0) lower_bound = ordering.size() + lower_bound; 
+	if (lower_bound < 0) lower_bound = 0; 	
 
 	start = tokens[4].find("\r\n",0) + 2; 
 	end = tokens[4].find("\r\n",start); 
 	auto upper_bound = std::stoi(tokens[4].substr(start, end - start));
+	if (upper_bound < 0) upper_bound = ordering.size() + upper_bound; 
+	if (upper_bound < 0) upper_bound = 0;
 
 	if (lower_bound > ordering.size() || lower_bound > upper_bound)
 	{
