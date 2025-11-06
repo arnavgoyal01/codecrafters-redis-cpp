@@ -158,7 +158,9 @@ public:
 	void ZADD();
 
 	void ZRANK(); 
-	
+
+	void ZRANGE(); 
+
 	void XREAD_BLOCK(int cfd); 
 
 	void BLPOP_RESOLVE(std::string key);

@@ -1055,6 +1055,42 @@ void Server::ZRANK()
 	if (c == set_ordering[tokens[2]].size()) response = "$-1\r\n";
 }
 
+void Server::ZRANGE()
+{
+	auto key = tokens[2]; 
+	response = "*0\r\n";
+
+	if (set_ordering.find(key) == set_ordering.end())
+	{
+		return;
+	}
+
+	auto ordering = set_ordering[key]; 
+	auto start = tokens[3].find("\r\n",0) + 2; 
+	auto end = tokens[3].find("\r\n",start); 
+	auto lower_bound = std::stoi(tokens[3].substr(start, end - start)); 
+
+	start = tokens[4].find("\r\n",0) + 2; 
+	end = tokens[4].find("\r\n",start); 
+	auto upper_bound = std::stoi(tokens[4].substr(start, end - start));
+
+	if (lower_bound > ordering.size() || lower_bound > upper_bound)
+	{
+		return; 
+	} else if (upper_bound > ordering.size()) upper_bound = ordering.size(); 
+
+	auto i = lower_bound;
+	response = "*" + std::to_string(upper_bound - lower_bound + 1) + "\r\n"; 
+	while (i <= upper_bound)
+	{
+		auto it = std::next(ordering.begin(), i); 
+		std::string label = it->second;
+		response += "$" + std::to_string(label.size()) + "\r\n" + label + "\r\n"; 
+		i++;
+	}
+
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
@@ -1256,6 +1292,10 @@ bool Server::commandCenter(int cfd)
 	else if (tokens[1] == "5\r\nzrank\r\n")
 	{
 		ZRANK();
+	}
+	else if(tokens[1] == "6\r\nzrange\r\n")
+	{
+		ZRANGE(); 
 	}
 	return true;
 }
