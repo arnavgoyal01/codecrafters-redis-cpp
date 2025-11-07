@@ -1156,7 +1156,7 @@ void Server::ZREM()
 	auto& s_order = set_ordering[key]; 
 	s_order.erase(p); 
 	
-	response = ":" + std::to_string(s_order.size()) + "\r\n"; 
+	response = ":1\r\n"; 
 
 }
 
