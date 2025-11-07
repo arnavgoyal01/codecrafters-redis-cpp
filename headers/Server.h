@@ -40,10 +40,14 @@ private:
 	std::string role;
 
 	std::map<std::string, 
-		std::map<std::string, long double>> sorted_sets;
+		std::map<std::string, double>> sorted_sets;
+
+	std::map<std::string, 
+		std::map<std::string, 
+			std::pair<double, double>>> geo_sets;
 
 	std::map<std::string,
-		std::set<std::pair<long double, std::string>>> set_ordering; 
+		std::set<std::pair<double, std::string>>> set_ordering; 
 
 	std::map<std::string, std::string> config;
 
@@ -167,7 +171,9 @@ public:
 
 	void ZSCORE(); 
 
-	void ZREM(); 
+	void ZREM();
+
+	void GEOADD(); 
 
 	void XREAD_BLOCK(int cfd); 
 

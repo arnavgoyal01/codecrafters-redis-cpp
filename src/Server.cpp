@@ -1160,6 +1160,27 @@ void Server::ZREM()
 
 }
 
+void Server::GEOADD()
+{
+	auto key = tokens[2];
+	auto start = tokens[3].find("\r\n",0) + 2; 
+	auto end = tokens[3].find("\r\n",start); 
+	auto lon = std::stod(tokens[3].substr(start, end - start)); 
+	
+	start = tokens[4].find("\r\n",0) + 2; 
+	end = tokens[4].find("\r\n",start); 
+	auto lat = std::stod(tokens[4].substr(start, end - start)); 
+
+	start = tokens[5].find("\r\n",0) + 2; 
+	end = tokens[5].find("\r\n",start); 
+	auto label = tokens[5].substr(start, end - start); 
+
+	std::pair<double, double> p = { lon, lat };
+	geo_sets[key][label] = p; 
+
+	response = ":1\r\n"; 
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
@@ -1377,6 +1398,10 @@ bool Server::commandCenter(int cfd)
 	else if(tokens[1] == "4\r\nzrem\r\n")
 	{
 		ZREM(); 
+	}
+	else if(tokens[1] == "6\r\ngeoadd\r\n")
+	{
+		GEOADD(); 
 	}
 	return true;
 }
