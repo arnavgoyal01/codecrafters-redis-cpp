@@ -22,6 +22,8 @@
 #include <queue>
 #include <unordered_set>
 #include <set>
+#include <iomanip>
+#include <sstream>
 
 class Server 
 {
@@ -38,10 +40,10 @@ private:
 	std::string role;
 
 	std::map<std::string, 
-		std::map<std::string, float>> sorted_sets;
+		std::map<std::string, long double>> sorted_sets;
 
 	std::map<std::string,
-		std::set<std::pair<float, std::string>>> set_ordering; 
+		std::set<std::pair<long double, std::string>>> set_ordering; 
 
 	std::map<std::string, std::string> config;
 
@@ -162,6 +164,8 @@ public:
 	void ZRANGE();
 
 	void ZCARD(); 
+
+	void ZSCORE(); 
 
 	void XREAD_BLOCK(int cfd); 
 

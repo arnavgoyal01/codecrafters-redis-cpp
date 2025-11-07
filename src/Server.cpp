@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <netdb.h>
@@ -1011,7 +1012,7 @@ void Server::ZADD()
 	auto key = tokens[2]; 
 	auto start = tokens[3].find("\r\n",0) + 2; 
 	auto end = tokens[3].find("\r\n",start); 
-	auto val = std::stof(tokens[3].substr(start,end - start));
+	auto val = std::stod(tokens[3].substr(start,end - start));
 	std::string r = "1"; 
 
 	start = tokens[4].find("\r\n",0) + 2; 
@@ -1021,13 +1022,13 @@ void Server::ZADD()
 	if (sorted_sets[key].find(label) != sorted_sets[key].end())
 	{
 		auto old_val = sorted_sets[key][label];
-		std::pair<float, std::string> p = { old_val, label }; 
+		std::pair<double, std::string> p = { old_val, label }; 
 		set_ordering[key].erase(p);
 		r = "0"; 
 	}
 	
 	sorted_sets[key][label] = val; 
-	std::pair<float, std::string> q = { val, label };
+	std::pair<double, std::string> q = { val, label };
 	set_ordering[key].insert(q);
 		
 	response = ":" + r + "\r\n"; 
@@ -1111,6 +1112,27 @@ void Server::ZCARD()
 
 	auto o = set_ordering[key]; 
 	response = ":" + std::to_string(o.size()) + "\r\n"; 
+}
+
+void Server::ZSCORE()
+{
+	auto key = tokens[2]; 
+	response = "$-1\r\n";
+
+	if (sorted_sets.find(key) == sorted_sets.end()) return; 
+
+	auto sset = sorted_sets[key]; 
+	auto start = tokens[3].find("\r\n",0) + 2; 
+	auto end = tokens[3].find("\r\n",start); 
+	auto label = tokens[3].substr(start, end - start); 
+	
+	if (sset.find(label) == sset.end()) return; 
+	
+	std::ostringstream oss;
+	auto val = sset[label];	
+	oss << std::setprecision(17) << val;   
+	std::string str = oss.str(); 
+	response = "$" + std::to_string(str.size()) + "\r\n" + str + "\r\n"; 
 }
 
 bool Server::commandCenter(int cfd)
@@ -1322,6 +1344,10 @@ bool Server::commandCenter(int cfd)
 	else if(tokens[1] == "5\r\nzcard\r\n")
 	{
 		ZCARD();
+	}
+	else if(tokens[1] == "6\r\nzscore\r\n")
+	{
+		ZSCORE();
 	}
 	return true;
 }
