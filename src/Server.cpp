@@ -1135,6 +1135,31 @@ void Server::ZSCORE()
 	response = "$" + std::to_string(str.size()) + "\r\n" + str + "\r\n"; 
 }
 
+void Server::ZREM()
+{
+	auto key = tokens[2]; 
+	auto& sset = sorted_sets[key]; 
+
+	auto start = tokens[3].find("\r\n",0) + 2;
+	auto end = tokens[3].find("\r\n",start);
+	auto label = tokens[3].substr(start, end - start); 
+	response = ":0\r\n";
+
+	if (sset.find(label) == sset.end())
+	{
+		return;
+	}
+
+	auto val = sset[label]; 
+	sset.erase(label); 
+	std::pair<double, std::string> p = { val, label };
+	auto& s_order = set_ordering[key]; 
+	s_order.erase(p); 
+	
+	response = ":" + std::to_string(s_order.size()) + "\r\n"; 
+
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
@@ -1348,6 +1373,10 @@ bool Server::commandCenter(int cfd)
 	else if(tokens[1] == "6\r\nzscore\r\n")
 	{
 		ZSCORE();
+	}
+	else if(tokens[1] == "4\r\nzrem\r\n")
+	{
+		ZREM(); 
 	}
 	return true;
 }

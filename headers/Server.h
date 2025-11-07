@@ -167,6 +167,8 @@ public:
 
 	void ZSCORE(); 
 
+	void ZREM(); 
+
 	void XREAD_BLOCK(int cfd); 
 
 	void BLPOP_RESOLVE(std::string key);
