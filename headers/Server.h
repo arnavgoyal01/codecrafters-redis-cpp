@@ -178,7 +178,9 @@ public:
 
 	void ZREM();
 
-	void GEOADD(); 
+	void GEOADD();
+
+	void GEOPASS();
 
 	void XREAD_BLOCK(int cfd); 
 

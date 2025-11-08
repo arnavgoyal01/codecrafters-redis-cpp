@@ -1232,7 +1232,8 @@ std::string encodeGeohash(double latitude, double longitude, int precision = 12)
 	return geohash_string;
 }
 
-uint64_t spread_int32_to_int64(uint32_t v) {
+uint64_t spread_int32_to_int64(uint32_t v) 
+{
     uint64_t result = v;
     result = (result | (result << 16)) & 0x0000FFFF0000FFFFULL;
     result = (result | (result << 8)) & 0x00FF00FF00FF00FFULL;
@@ -1242,14 +1243,16 @@ uint64_t spread_int32_to_int64(uint32_t v) {
     return result;
 }
 
-uint64_t interleave(uint32_t x, uint32_t y) {
+uint64_t interleave(uint32_t x, uint32_t y) 
+{
     uint64_t x_spread = spread_int32_to_int64(x);
     uint64_t y_spread = spread_int32_to_int64(y);
     uint64_t y_shifted = y_spread << 1;
     return x_spread | y_shifted;
 }
 
-uint64_t encode(double latitude, double longitude) {
+uint64_t encode(double latitude, double longitude) 
+{
     // Normalize to the range 0-2^26
     double normalized_latitude = pow(2, 26) * (latitude - MIN_LATITUDE) / LATITUDE_RANGE;
     double normalized_longitude = pow(2, 26) * (longitude - MIN_LONGITUDE) / LONGITUDE_RANGE;
@@ -1292,6 +1295,70 @@ void Server::GEOADD()
 	set_ordering[key].push_back(p); 
 	std::sort(set_ordering[key].begin(), set_ordering[key].end(), cmp); 	
 	response = ":1\r\n"; 
+}
+
+typedef struct 
+{
+    double latitude;
+    double longitude;
+} coordinates_t;
+
+uint32_t compact_int64_to_int32(uint64_t v) 
+{
+    v = v & 0x5555555555555555ULL;
+    v = (v | (v >> 1)) & 0x3333333333333333ULL;
+    v = (v | (v >> 2)) & 0x0F0F0F0F0F0F0F0FULL;
+    v = (v | (v >> 4)) & 0x00FF00FF00FF00FFULL;
+    v = (v | (v >> 8)) & 0x0000FFFF0000FFFFULL;
+    v = (v | (v >> 16)) & 0x00000000FFFFFFFFULL;
+    return (uint32_t)v;
+}
+
+coordinates_t convert_grid_numbers_to_coordinates(uint32_t grid_latitude_number, uint32_t grid_longitude_number) 
+{
+    coordinates_t result;
+    
+    // Calculate the grid boundaries
+    double grid_latitude_min = MIN_LATITUDE + LATITUDE_RANGE * (grid_latitude_number / pow(2, 26));
+    double grid_latitude_max = MIN_LATITUDE + LATITUDE_RANGE * ((grid_latitude_number + 1) / pow(2, 26));
+    double grid_longitude_min = MIN_LONGITUDE + LONGITUDE_RANGE * (grid_longitude_number / pow(2, 26));
+    double grid_longitude_max = MIN_LONGITUDE + LONGITUDE_RANGE * ((grid_longitude_number + 1) / pow(2, 26));
+    
+    // Calculate the center point of the grid cell
+    result.latitude = (grid_latitude_min + grid_latitude_max) / 2;
+    result.longitude = (grid_longitude_min + grid_longitude_max) / 2;
+    
+    return result;
+}
+
+coordinates_t decode(uint64_t geo_code) 
+{
+    // Align bits of both latitude and longitude to take even-numbered position
+    uint64_t y = geo_code >> 1;
+    uint64_t x = geo_code;
+    
+    // Compact bits back to 32-bit ints
+    uint32_t grid_latitude_number = compact_int64_to_int32(x);
+    uint32_t grid_longitude_number = compact_int64_to_int32(y);
+    
+    return convert_grid_numbers_to_coordinates(grid_latitude_number, grid_longitude_number);
+}
+
+void Server::GEOPASS()
+{
+	auto key = tokens[2]; 
+	std::string nil = "*-1\r\n";
+	auto ssize = tokens.size() - 3;
+	response = "*" + std::to_string(ssize) + "\r\n";
+
+	if (set_ordering.find(tokens[2]) == set_ordering.end())
+	{
+		for (int i = 0; i < ssize; i++) response += nil;
+		return; 
+	}
+
+	std::string loc = "*2\r\n$1\r\n0\r\n$1\r\n0\r\n"; 
+	for (int i = 0; i < ssize; i++) response += loc;
 }
 
 bool Server::commandCenter(int cfd)
@@ -1515,6 +1582,10 @@ bool Server::commandCenter(int cfd)
 	else if(tokens[1] == "6\r\ngeoadd\r\n")
 	{
 		GEOADD(); 
+	}
+	else if(tokens[1] == "7\r\ngeopass\r\n")
+	{
+		GEOPASS();
 	}
 	return true;
 }
