@@ -180,7 +180,7 @@ public:
 
 	void GEOADD();
 
-	void GEOPASS();
+	void GEOPOS();
 
 	void XREAD_BLOCK(int cfd); 
 

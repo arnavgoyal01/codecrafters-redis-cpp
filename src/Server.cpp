@@ -1344,7 +1344,7 @@ coordinates_t decode(uint64_t geo_code)
     return convert_grid_numbers_to_coordinates(grid_latitude_number, grid_longitude_number);
 }
 
-void Server::GEOPASS()
+void Server::GEOPOS()
 {
 	auto key = tokens[2]; 
 	std::string nil = "*-1\r\n";
@@ -1583,9 +1583,9 @@ bool Server::commandCenter(int cfd)
 	{
 		GEOADD(); 
 	}
-	else if(tokens[1] == "7\r\ngeopass\r\n")
-	{
-		GEOPASS();
+	else if(tokens[1] == "6\r\ngeopos\r\n")
+	{ 
+		GEOPOS();
 	}
 	return true;
 }
