@@ -24,6 +24,15 @@
 #include <set>
 #include <iomanip>
 #include <sstream>
+#include <cmath>
+
+#define MIN_LATITUDE -85.05112878
+#define MAX_LATITUDE 85.05112878
+#define MIN_LONGITUDE -180.0
+#define MAX_LONGITUDE 180.0
+
+#define LATITUDE_RANGE (MAX_LATITUDE - MIN_LATITUDE)
+#define LONGITUDE_RANGE (MAX_LONGITUDE - MIN_LONGITUDE)
 
 class Server 
 {

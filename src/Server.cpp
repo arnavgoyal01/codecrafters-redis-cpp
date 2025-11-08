@@ -1232,6 +1232,35 @@ std::string encodeGeohash(double latitude, double longitude, int precision = 12)
 	return geohash_string;
 }
 
+uint64_t spread_int32_to_int64(uint32_t v) {
+    uint64_t result = v;
+    result = (result | (result << 16)) & 0x0000FFFF0000FFFFULL;
+    result = (result | (result << 8)) & 0x00FF00FF00FF00FFULL;
+    result = (result | (result << 4)) & 0x0F0F0F0F0F0F0F0FULL;
+    result = (result | (result << 2)) & 0x3333333333333333ULL;
+    result = (result | (result << 1)) & 0x5555555555555555ULL;
+    return result;
+}
+
+uint64_t interleave(uint32_t x, uint32_t y) {
+    uint64_t x_spread = spread_int32_to_int64(x);
+    uint64_t y_spread = spread_int32_to_int64(y);
+    uint64_t y_shifted = y_spread << 1;
+    return x_spread | y_shifted;
+}
+
+uint64_t encode(double latitude, double longitude) {
+    // Normalize to the range 0-2^26
+    double normalized_latitude = pow(2, 26) * (latitude - MIN_LATITUDE) / LATITUDE_RANGE;
+    double normalized_longitude = pow(2, 26) * (longitude - MIN_LONGITUDE) / LONGITUDE_RANGE;
+
+    // Truncate to integers
+    uint32_t lat_int = (uint32_t)normalized_latitude;
+    uint32_t lon_int = (uint32_t)normalized_longitude;
+
+    return interleave(lat_int, lon_int);
+}
+
 void Server::GEOADD()
 {
 	auto key = tokens[2];
@@ -1256,7 +1285,7 @@ void Server::GEOADD()
 	end = tokens[5].find("\r\n",start); 
 	auto label = tokens[5].substr(start, end - start); 
 
-	auto hash =  encodeGeohash(lat, lon, 20);
+	auto hash =  std::to_string(encode(lat, lon));
 
 	sorted_sets[key][label] = hash;
 	std::pair< std::string, std::string> p = { hash, label };
