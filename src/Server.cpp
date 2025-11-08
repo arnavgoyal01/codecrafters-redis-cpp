@@ -9,6 +9,7 @@
 #include <map>
 #include <netdb.h>
 #include <set>
+#include <sstream>
 #include <string>
 #include <strings.h>
 #include <unistd.h>
@@ -1007,12 +1008,28 @@ void Server::WAIT()
 
 }
 
+auto cmp = [](std::pair<std::string, std::string> p1, std::pair<std::string, std::string> p2) 
+{
+	auto h1 = p1.first;
+	auto h2 = p2.first; 
+	try {
+		auto v1 = std::stod(h1);
+		auto v2 = std::stod(h2); 
+		if (v1 == v2) return p1.second < p2.second;
+		return v1 < v2; 
+	} catch (const std::invalid_argument& e) { 
+		if (h1 == h2) return p1.second < p2.second;
+		return h1 < h2;// Not a valid number format
+  }
+};
+
+
 void Server::ZADD()
 {
 	auto key = tokens[2]; 
 	auto start = tokens[3].find("\r\n",0) + 2; 
 	auto end = tokens[3].find("\r\n",start); 
-	auto val = std::stod(tokens[3].substr(start,end - start));
+	auto val = tokens[3].substr(start,end - start);
 	std::string r = "1"; 
 
 	start = tokens[4].find("\r\n",0) + 2; 
@@ -1022,18 +1039,21 @@ void Server::ZADD()
 	if (sorted_sets[key].find(label) != sorted_sets[key].end())
 	{
 		auto old_val = sorted_sets[key][label];
-		std::pair<double, std::string> p = { old_val, label }; 
-		set_ordering[key].erase(p);
+		std::pair<std::string, std::string> p = { old_val, label };
+		int c = 0; 
+		for (auto it = set_ordering[key].begin(); *it != p && it != set_ordering[key].end(); it++)  c++;
+		set_ordering[key].erase(set_ordering[key].begin() + c);
 		r = "0"; 
 	}
 	
 	sorted_sets[key][label] = val; 
-	std::pair<double, std::string> q = { val, label };
-	set_ordering[key].insert(q);
-		
+	std::pair<std::string, std::string> q = { val, label };
+	set_ordering[key].push_back(q);
+	std::sort(set_ordering[key].begin(), set_ordering[key].end(), cmp); 	
 	response = ":" + r + "\r\n"; 
 
 }
+ 
 
 void Server::ZRANK()
 {
@@ -1043,14 +1063,10 @@ void Server::ZRANK()
 		return;
 	}
 
-	auto comp = set_ordering[tokens[2]].key_comp(); 
-	auto it = set_ordering[tokens[2]].begin(); 
-	auto end = *set_ordering[tokens[2]].rbegin(); 
-	
 	int c = 0; 
 	auto start = tokens[3].find("\r\n",0) + 2; 
 	auto send = tokens[3].find("\r\n",start); 
-	auto label = tokens[3].substr(start,send - start); 
+	auto label = tokens[3].substr(start,send - start);
 
 	for (auto i = set_ordering[tokens[2]].begin(); i->second != label & i != set_ordering[tokens[2]].end(); i++) c++;
 	response = ":" + std::to_string(c) + "\r\n"; 
@@ -1152,12 +1168,68 @@ void Server::ZREM()
 
 	auto val = sset[label]; 
 	sset.erase(label); 
-	std::pair<double, std::string> p = { val, label };
+	std::pair< std::string, std::string> p = { val, label };
 	auto& s_order = set_ordering[key]; 
-	s_order.erase(p); 
+	int c = 0; 
+	for (auto it = s_order.begin(); *it != p && it != s_order.end(); it++)  c++;
+	s_order.erase(s_order.begin() + c); 
 	
 	response = ":1\r\n"; 
 
+}
+
+std::string encodeGeohash(double latitude, double longitude, int precision = 12) 
+{
+	const std::string BASE32_CHARS = "0123456789bcdefghjkmnpqrstuvwxyz";
+
+	double lat_min = -85.05112878, lat_max = +85.05112878;
+	double lon_min = -180.0, lon_max = 180.0;
+
+	std::string geohash_bits;
+	bool is_even_bit = true; // True for longitude, false for latitude
+
+	for (int i = 0; i < precision * 5; ++i) 
+	{ // 5 bits per character in Base32
+		if (is_even_bit) 
+		{ // Longitude
+			double mid = (lon_min + lon_max) / 2.0;
+			if (longitude > mid) 
+			{
+				geohash_bits += '1';
+				lon_min = mid;
+			} 
+			else 
+			{
+				geohash_bits += '0';
+				lon_max = mid;
+			}
+		} 
+		else 
+		{ // Latitude
+			double mid = (lat_min + lat_max) / 2.0;
+			if (latitude > mid) 
+			{
+				geohash_bits += '1';
+				lat_min = mid;
+			} 
+			else 
+			{
+				geohash_bits += '0';
+				lat_max = mid;
+			}
+		}
+		is_even_bit = !is_even_bit;
+	}
+
+	std::string geohash_string;
+	for (size_t i = 0; i < geohash_bits.length(); i += 5) 
+	{
+		std::string five_bits = geohash_bits.substr(i, 5);
+		int val = std::stoi(five_bits, nullptr, 2); // Convert binary string to integer
+		geohash_string += BASE32_CHARS[val];
+	}
+
+	return geohash_string;
 }
 
 void Server::GEOADD()
@@ -1171,13 +1243,25 @@ void Server::GEOADD()
 	end = tokens[4].find("\r\n",start); 
 	auto lat = std::stod(tokens[4].substr(start, end - start)); 
 
+	if (lon < -180 || lon > 180 || lat < -85.05112878 || lat > +85.05112878)
+	{
+		std::ostringstream oss; 
+		oss << std::setprecision(20) << lon << "," << std::setprecision(20)
+			<< lat; 
+		response = "-ERR invalid longitude,latitude pair " + oss.str() + "\r\n";
+		return;
+	}
+
 	start = tokens[5].find("\r\n",0) + 2; 
 	end = tokens[5].find("\r\n",start); 
 	auto label = tokens[5].substr(start, end - start); 
 
-	std::pair<double, double> p = { lon, lat };
-	geo_sets[key][label] = p; 
+	auto hash =  encodeGeohash(lat, lon, 20);
 
+	sorted_sets[key][label] = hash;
+	std::pair< std::string, std::string> p = { hash, label };
+	set_ordering[key].push_back(p); 
+	std::sort(set_ordering[key].begin(), set_ordering[key].end(), cmp); 	
 	response = ":1\r\n"; 
 }
 
