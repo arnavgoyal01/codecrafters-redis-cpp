@@ -1442,7 +1442,7 @@ void Server::GEODIST()
 	std::stringstream ss;
 	ss << std::setprecision(17) << distance; 
 	std::string x = ss.str(); 
-	response += "$" + std::to_string(x.size()) + "\r\n" + x + "\r\n";
+	response = "$" + std::to_string(x.size()) + "\r\n" + x + "\r\n";
 }
 
 bool Server::commandCenter(int cfd)
