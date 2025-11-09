@@ -1358,7 +1358,18 @@ void Server::GEOPOS()
 	}
 
 	std::string loc = "*2\r\n$1\r\n0\r\n$1\r\n0\r\n"; 
-	for (int i = 0; i < ssize; i++) response += loc;
+	auto& sset = sorted_sets[key]; 
+	for (int i = 1; i <= ssize; i++) 
+	{
+		if(sset.find(tokens[2 + i]) != sset.end())
+		{
+			response += loc;		
+		}
+		else 
+		{
+			response += nil;
+		}
+	}
 }
 
 bool Server::commandCenter(int cfd)
