@@ -1423,6 +1423,7 @@ void Server::GEODIST()
 	auto start = tokens[3].find("\r\n",0) + 2;
 	auto end = tokens[3].find("\r\n",start);
 	auto place1 = tokens[3].substr(start, end - start);
+	std::cout << "val1: " << sset[place1] << "\n"; 
 	auto val1 = std::stod(sset[place1]); 
 	auto c1 = decode(val1);
 	auto lon1 = c1.longitude;
@@ -1431,6 +1432,7 @@ void Server::GEODIST()
 	start = tokens[4].find("\r\n",0) + 2;
 	end = tokens[4].find("\r\n",start);
 	auto place2 = tokens[3].substr(start, end - start);
+	std::cout << "val2 " << sset[place2] << "\n";
 	auto val2 = std::stod(sset[place2]); 
 	auto c2 = decode(val2); 
 	auto lon2 = c2.longitude;
