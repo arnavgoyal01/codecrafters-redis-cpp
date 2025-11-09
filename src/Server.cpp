@@ -1357,8 +1357,10 @@ void Server::GEOPOS()
 		return; 
 	}
 
-	std::string loc = "*2\r\n$1\r\n0\r\n$1\r\n0\r\n"; 
 	auto& sset = sorted_sets[key]; 
+	std::stringstream lat, lon;
+	std::string x, y; 
+
 	for (int i = 1; i <= ssize; i++) 
 	{
 		auto start = tokens[2 + i].find("\r\n",0) + 2; 
@@ -1367,6 +1369,22 @@ void Server::GEOPOS()
 		
 		if(sset.find(label) != sset.end())
 		{
+			auto val = std::stod(sset[label]); 
+			auto c = decode(val);
+			std::string loc = "*2\r\n"; 
+
+			lon.str(""); 
+			lon << std::setprecision(17) << c.longitude;
+			y = lon.str();	
+			std::cout << "y: " << y << "\n"; 
+			loc += "$" + std::to_string(y.size()) + "\r\n" + y + "\r\n";
+			
+		
+			lat.str("");
+			lat << std::setprecision(17) << c.latitude;
+			x = lat.str();
+			std::cout << "x: " << x << "\n"; 
+			loc += "$" + std::to_string(x.size()) + "\r\n" + x + "\r\n"; 
 			response += loc;		
 		}
 		else 
