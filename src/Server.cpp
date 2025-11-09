@@ -1394,6 +1394,55 @@ void Server::GEOPOS()
 	}
 }
 
+double DegreeToRadian(double angle)
+{
+	return M_PI * angle / 180.0;
+}
+
+double HaversineDistance(const double lon1, const double lat1, 
+												 const double lon2, const double lat2)
+{
+	double lonRad1 = DegreeToRadian(lon1);
+	double lonRad2 = DegreeToRadian(lon2);
+	double latRad1 = DegreeToRadian(lat1);
+	double latRad2 = DegreeToRadian(lat2);
+
+	double diffLa = latRad2 - latRad1;
+	double doffLo = lonRad2 - lonRad1;
+
+	double computation = asin(sqrt(sin(diffLa / 2) * sin(diffLa / 2) + cos(latRad1)
+																* cos(latRad2) * sin(doffLo / 2) * sin(doffLo / 2)));
+	return 2 * EARTH_RADIUS_IN_METERS * computation;
+}
+
+void Server::GEODIST()
+{
+	auto key = tokens[2]; 
+	auto& sset = sorted_sets[key]; 
+
+	auto start = tokens[3].find("\r\n",0) + 2;
+	auto end = tokens[3].find("\r\n",start);
+	auto place1 = tokens[3].substr(start, end - start);
+	auto val1 = std::stod(sset[place1]); 
+	auto c1 = decode(val1);
+	auto lon1 = c1.longitude;
+	auto lat1 = c1.latitude; 
+
+	start = tokens[4].find("\r\n",0) + 2;
+	end = tokens[4].find("\r\n",start);
+	auto place2 = tokens[3].substr(start, end - start);
+	auto val2 = std::stod(sset[place2]); 
+	auto c2 = decode(val2); 
+	auto lon2 = c2.longitude;
+	auto lat2 = c2.latitude; 
+
+	auto distance = HaversineDistance(lon1, lat1, lon2, lat2); 
+	std::stringstream ss;
+	ss << std::setprecision(17) << distance; 
+	std::string x = ss.str(); 
+	response += "$" + std::to_string(x.size()) + "\r\n" + x + "\r\n";
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
@@ -1619,6 +1668,10 @@ bool Server::commandCenter(int cfd)
 	else if(tokens[1] == "6\r\ngeopos\r\n")
 	{ 
 		GEOPOS();
+	}
+	else if(tokens[1] == "7\r\ngeodist\r\n")
+	{
+		GEODIST();
 	}
 	return true;
 }
