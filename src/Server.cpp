@@ -1361,7 +1361,11 @@ void Server::GEOPOS()
 	auto& sset = sorted_sets[key]; 
 	for (int i = 1; i <= ssize; i++) 
 	{
-		if(sset.find(tokens[2 + i]) != sset.end())
+		auto start = tokens[2 + i].find("\r\n",0) + 2; 
+		auto end = tokens[2 + i].find("\r\n",start); 
+		auto label = tokens[2 + i].substr(start, end - start);
+		
+		if(sset.find(label) != sset.end())
 		{
 			response += loc;		
 		}
