@@ -1711,6 +1711,10 @@ bool Server::commandCenter(int cfd)
 	{
 		GEOSEARCH();
 	}
+	else if(tokens[1] == "3\r\nacl\r\n")
+	{
+		response = "$7\r\ndefault\r\n";
+	}
 	return true;
 }
 
