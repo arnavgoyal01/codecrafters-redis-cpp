@@ -1716,7 +1716,7 @@ bool Server::commandCenter(int cfd)
 		response = "$7\r\ndefault\r\n";
 		if (tokens[2] == "7\r\ngetuser\r\n")
 		{
-			response = "*2\r\n$5\r\nflags\r\n*0\r\n";
+			response = "*2\r\n$5\r\nflags\r\n*1\r\n$6\r\nnopass\r\n";
 		}
 	}
 	return true;
