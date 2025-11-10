@@ -1714,6 +1714,10 @@ bool Server::commandCenter(int cfd)
 	else if(tokens[1] == "3\r\nacl\r\n")
 	{
 		response = "$7\r\ndefault\r\n";
+		if (tokens[2] == "7\r\ngetuser\r\n")
+		{
+			response = "*2\r\n$5\r\nflags\r\n*0\r\n";
+		}
 	}
 	return true;
 }
