@@ -185,6 +185,8 @@ public:
 
 	void GEODIST();
 
+	void GEOSEARCH(); 
+
 	void XREAD_BLOCK(int cfd); 
 
 	void BLPOP_RESOLVE(std::string key);

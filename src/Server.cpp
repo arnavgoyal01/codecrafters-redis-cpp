@@ -207,7 +207,7 @@ void Server::replicatingMaster(std::string loc)
 		std::printf("Socket error code %d\n", errno); 
 	}
 
-	response = "";
+	// response = "";
 	clientfds.push_back(master_fd);
 }
 
@@ -1445,6 +1445,38 @@ void Server::GEODIST()
 	response = "$" + std::to_string(x.size()) + "\r\n" + x + "\r\n";
 }
 
+void Server::GEOSEARCH()
+{
+	auto key = tokens[2]; 
+	auto start = tokens[4].find("\r\n",0) + 2;
+	auto end = tokens[4].find("\r\n",start); 
+	double lon = std::stod(tokens[4].substr(start, end - start));
+	
+	start = tokens[5].find("\r\n",0) + 2;
+	end = tokens[5].find("\r\n",start); 
+	double lat = std::stod(tokens[5].substr(start, end - start));
+
+	start = tokens[7].find("\r\n",0) + 2;
+	end = tokens[7].find("\r\n",start); 
+	double dis = std::stod(tokens[7].substr(start, end - start));
+
+	auto& sorder = set_ordering[key]; 
+	std::string base;
+	int count = 0; 
+	for (auto p : sorder)
+	{
+		auto c = decode(std::stod(p.first)); 
+		auto d = HaversineDistance(c.longitude, c.latitude, lon, lat);
+		if (d <= dis) 
+		{
+			count++; 
+			base += "$" + std::to_string(p.second.size()) + "\r\n" + p.second +
+						"\r\n";
+		}
+	}
+	response = "*" + std::to_string(count) + "\r\n" + base; 
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
@@ -1675,6 +1707,10 @@ bool Server::commandCenter(int cfd)
 	{
 		GEODIST();
 	}
+	else if(tokens[1] == "9\r\ngeosearch\r\n")
+	{
+		GEOSEARCH();
+	}
 	return true;
 }
 
@@ -1731,11 +1767,14 @@ void Server::controller()
 		if (FD_ISSET(clientfds[i], &masterfds))
 		{ 
 			if (!getInput(i)) continue; // check client closed
-			
+			response = "";	
 			if (mul.find(clientfds[i]) != mul.end())
 			{
 				MULTI(clientfds[i]);
-			} else if (commandCenter(clientfds[i])) sendData(clientfds[i],response);						
+			} else if (commandCenter(clientfds[i])) 
+			{
+				sendData(clientfds[i],response);			
+			}						
 		}
 		
 		else if (blocklist.find(clientfds[i]) != blocklist.end())
