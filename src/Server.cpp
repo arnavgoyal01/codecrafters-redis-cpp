@@ -1770,7 +1770,7 @@ bool Server::commandCenter(int cfd)
 		}
 		else 
 		{
-			response = "-WRONGTYPE Operation against a key holding the wrong kind of value\r\n";
+			response = "-WRONGPASS invalid username-password pair or user is disabled\r\n";
 		}
 	}
 	return true;
