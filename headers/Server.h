@@ -80,7 +80,9 @@ private:
 	int maxfd;
 
 	std::map<std::string,std::string> passwords; 
-	
+
+	std::map<int,std::string> auth_users; 
+
 	std::vector<int> clientfds;
 
 	char buffer[256];

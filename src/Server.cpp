@@ -1752,8 +1752,23 @@ bool Server::commandCenter(int cfd)
 
 			auto hpassword =  hashPassword(plain_text);
 			passwords[user] = hpassword;
+			auth_users[cfd] = user;
 			response = "+OK\r\n";
-
+		}
+		else if (tokens[2] == "6\r\nwhoami\r\n")
+		{
+			if (auth_users.find(cfd) != auth_users.end())
+			{
+				response = "$" + auth_users[cfd];
+			}
+			else if (!auth_users.empty())
+			{
+				response = "-NOAUTH Authentication required\r\n";
+			}
+			else 
+			{
+				response = "$7\r\ndefault\r\n";
+			}
 		}
 	}
 	else if(tokens[1] == "4\r\nauth\r\n")
