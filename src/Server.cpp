@@ -1759,9 +1759,9 @@ bool Server::commandCenter(int cfd)
 	else if(tokens[1] == "4\r\nauth\r\n")
 	{
 		auto user = tokens[2]; 
-		auto start = tokens[4].find("\r\n",0) + 3; 
-		auto end = tokens[4].find("\r\n",start);
-		std::string plain_text = tokens[4].substr(start, end - start);
+		auto start = tokens[3].find("\r\n",0) + 2; 
+		auto end = tokens[3].find("\r\n",start);
+		std::string plain_text = tokens[3].substr(start, end - start);
 
 		auto hpassword =  hashPassword(plain_text);
 		if (passwords[user] == hpassword)
