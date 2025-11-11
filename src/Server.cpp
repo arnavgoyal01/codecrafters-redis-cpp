@@ -1844,7 +1844,7 @@ void Server::controller()
 		if (FD_ISSET(clientfds[i], &masterfds))
 		{ 
 			if (!getInput(i)) continue; // check client closed
-			response = "";	
+			// response = "";	
 			if (mul.find(clientfds[i]) != mul.end())
 			{
 				MULTI(clientfds[i]);
