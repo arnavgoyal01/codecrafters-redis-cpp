@@ -1850,7 +1850,7 @@ void Server::controller()
 				MULTI(clientfds[i]);
 			} else if (commandCenter(clientfds[i])) 
 			{
-				std::cout << "Response: " << response << " END\n\n";
+				std::cout << "Response: " << tokens[1] << " END\n\n";
 				sendData(clientfds[i],response);			
 			}						
 		}
