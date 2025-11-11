@@ -206,7 +206,10 @@ void Server::replicatingMaster(std::string loc)
 		std::cerr << "Error in send\n"; 
 		std::printf("Socket error code %d\n", errno); 
 	}
-
+	
+	bzero(buffer, sizeof(buffer));
+	num_bytes =
+		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
 	clientfds.push_back(master_fd);
 }
 
