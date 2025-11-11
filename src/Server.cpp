@@ -1477,6 +1477,21 @@ void Server::GEOSEARCH()
 	response = "*" + std::to_string(count) + "\r\n" + base; 
 }
 
+std::string Server::hashPassword(const std::string str)
+{
+	unsigned char hash[SHA256_DIGEST_LENGTH];
+	SHA256_CTX sha256;
+	SHA256_Init(&sha256);
+	SHA256_Update(&sha256, str.c_str(), str.size());
+	SHA256_Final(hash, &sha256);
+	std::stringstream ss;
+	for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+	{
+			ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+	}
+	return ss.str();
+}
+
 bool Server::commandCenter(int cfd)
 {
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
@@ -1716,7 +1731,25 @@ bool Server::commandCenter(int cfd)
 		response = "$7\r\ndefault\r\n";
 		if (tokens[2] == "7\r\ngetuser\r\n")
 		{
-			response = "*4\r\n$5\r\nflags\r\n*1\r\n$6\r\nnopass\r\n$9\r\npasswords\r\n*0\r\n";
+			if (password == "")
+			{
+				response = "*4\r\n$5\r\nflags\r\n*1\r\n$6\r\nnopass\r\n$9\r\npasswords\r\n*0\r\n";
+			}
+			else
+			{
+				response = "*4\r\n$5\r\nflags\r\n*0\r\n$9\r\npasswords\r\n*1\r\n$" + std::to_string(password.size()) + 
+									"\r\n" + password + "\r\n";
+			}
+		}
+		else if (tokens[2] == "7\r\nsetuser\r\n")
+		{
+			auto start = tokens[4].find("\r\n",0) + 3; 
+			auto end = tokens[4].find("\r\n",start);
+			std::string plain_text = tokens[4].substr(start, end - start);
+
+			password =  hashPassword(plain_text);
+			response = "+OK\r\n";
+
 		}
 	}
 	return true;

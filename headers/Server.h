@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cmath>
+#include <openssl/sha.h>
 
 #define MIN_LATITUDE -85.05112878
 #define MAX_LATITUDE 85.05112878
@@ -77,6 +78,8 @@ private:
 	fd_set masterfds;
 	
 	int maxfd;
+
+	std::string password; 
 	
 	std::vector<int> clientfds;
 
@@ -188,7 +191,9 @@ public:
 	void GEOSEARCH(); 
 
 	void XREAD_BLOCK(int cfd); 
-
+	
+	std::string hashPassword(const std::string str);
+	
 	void BLPOP_RESOLVE(std::string key);
 
 	void XREAD_BLOCK_RESOLVE(std::string key);
