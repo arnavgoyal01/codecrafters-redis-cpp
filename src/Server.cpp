@@ -210,6 +210,11 @@ void Server::replicatingMaster(std::string loc)
 	bzero(buffer, sizeof(buffer));
 	num_bytes =
 		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
+	
+	bzero(buffer, sizeof(buffer));
+	num_bytes =
+		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
+
 	clientfds.push_back(master_fd);
 }
 
