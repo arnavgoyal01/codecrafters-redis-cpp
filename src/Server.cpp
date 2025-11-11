@@ -1731,25 +1731,46 @@ bool Server::commandCenter(int cfd)
 		response = "$7\r\ndefault\r\n";
 		if (tokens[2] == "7\r\ngetuser\r\n")
 		{
-			if (password == "")
+			auto user = tokens[3];
+			if (passwords.find(user) == passwords.end())
 			{
 				response = "*4\r\n$5\r\nflags\r\n*1\r\n$6\r\nnopass\r\n$9\r\npasswords\r\n*0\r\n";
 			}
 			else
 			{
+				auto password = passwords[user];
 				response = "*4\r\n$5\r\nflags\r\n*0\r\n$9\r\npasswords\r\n*1\r\n$" + std::to_string(password.size()) + 
 									"\r\n" + password + "\r\n";
 			}
 		}
 		else if (tokens[2] == "7\r\nsetuser\r\n")
 		{
+			auto user = tokens[3]; 
 			auto start = tokens[4].find("\r\n",0) + 3; 
 			auto end = tokens[4].find("\r\n",start);
 			std::string plain_text = tokens[4].substr(start, end - start);
 
-			password =  hashPassword(plain_text);
+			auto hpassword =  hashPassword(plain_text);
+			passwords[user] = hpassword;
 			response = "+OK\r\n";
 
+		}
+	}
+	else if(tokens[1] == "4\r\nauth\r\n")
+	{
+		auto user = tokens[2]; 
+		auto start = tokens[4].find("\r\n",0) + 3; 
+		auto end = tokens[4].find("\r\n",start);
+		std::string plain_text = tokens[4].substr(start, end - start);
+
+		auto hpassword =  hashPassword(plain_text);
+		if (passwords[user] == hpassword)
+		{
+			response = "+OK\r\n";
+		}
+		else 
+		{
+			response = "-WRONGTYPE Operation against a key holding the wrong kind of value\r\n";
 		}
 	}
 	return true;

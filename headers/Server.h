@@ -79,7 +79,7 @@ private:
 	
 	int maxfd;
 
-	std::string password; 
+	std::map<std::string,std::string> passwords; 
 	
 	std::vector<int> clientfds;
 
