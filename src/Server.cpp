@@ -207,7 +207,6 @@ void Server::replicatingMaster(std::string loc)
 		std::printf("Socket error code %d\n", errno); 
 	}
 
-	// response = "";
 	clientfds.push_back(master_fd);
 }
 
@@ -1847,9 +1846,11 @@ void Server::controller()
 			// response = "";	
 			if (mul.find(clientfds[i]) != mul.end())
 			{
+				std::cout << "Came\n";
 				MULTI(clientfds[i]);
 			} else if (commandCenter(clientfds[i])) 
 			{
+				std::cout << "Here\n";
 				sendData(clientfds[i],response);			
 			}						
 		}
