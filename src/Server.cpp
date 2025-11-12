@@ -1845,6 +1845,7 @@ void Server::controller()
 {		
 	bzero(buffer, 256);
 	int i = 0;
+	std::cout << "D\n";
 
 	while (i < clientfds.size())
 	{
