@@ -208,13 +208,18 @@ void Server::replicatingMaster(std::string loc)
 	}
 	
 	bzero(buffer, sizeof(buffer));
-	num_bytes =
-		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
+	// num_bytes =
+	//	recv(master_fd, buffer, sizeof(buffer) - 1, 0);
 	
-	bzero(buffer, sizeof(buffer));
-	num_bytes =
-		recv(master_fd, buffer, sizeof(buffer) - 1, 0);
-	std::cout << "C\n";
+	// std::cout << "C " << buffer << " D\n\n"; 
+	// bzero(buffer, sizeof(buffer));
+	// num_bytes =
+	//	recv(master_fd, buffer, sizeof(buffer) - 1, 0);
+
+	// std::cout << "E " << buffer << " F\n\n";	
+	// bzero(buffer, sizeof(buffer));	
+
+	std::cout << "E " << buffer << " F\n\n";
 	clientfds.push_back(master_fd);
 }
 
@@ -293,7 +298,7 @@ void Server::setValue()
 	if (tokens.size() > 4)
 	{
 		std::cout << "Got here2\n"; 
-		for (auto i : tokens) std::cout << "ID " << i << " ED\n"; 
+		for (auto i : tokens) std::cout << "ID " << i << " ED\n\n"; 
 		size_t p1 = tokens[5].find("\r\n",0);
 		int length = std::stoi(tokens[5].substr(0,p1));
 		int duration = std::stoi(tokens[5].substr(p1 + 2, length)); 
@@ -1501,6 +1506,7 @@ std::string Server::hashPassword(const std::string str)
 
 bool Server::commandCenter(int cfd)
 {
+	if (tokens.size() == 1) return false;
 	if (subscribed_channels.find(cfd) != subscribed_channels.end()
 				&& allowed_commands.find(tokens[1]) == allowed_commands.end())
 	{
@@ -1794,6 +1800,11 @@ bool Server::commandCenter(int cfd)
 		{
 			response = "-WRONGPASS invalid username-password pair or user is disabled\r\n";
 		}
+	} 
+	else
+	{
+		std::cout << "E\n";
+		return false; 
 	}
 	return true;
 }
@@ -1813,6 +1824,8 @@ bool Server::getInput(int& i)
 	}
 
 	input = buffer;
+	std::cout << "Input: " << input << " END\n\n";	
+
 	std::transform(input.begin(), input.end(), input.begin(),
                    [](unsigned char c){ return std::tolower(c); });
 	tokens.clear();
@@ -1845,21 +1858,18 @@ void Server::controller()
 {		
 	bzero(buffer, 256);
 	int i = 0;
-	std::cout << "D\n";
 
 	while (i < clientfds.size())
 	{
 		if (FD_ISSET(clientfds[i], &masterfds))
 		{ 
 			if (!getInput(i)) continue; // check client closed
-			// response = "";	
+			
 			if (mul.find(clientfds[i]) != mul.end())
 			{
-				std::cout << "Came\n";
 				MULTI(clientfds[i]);
 			} else if (commandCenter(clientfds[i])) 
-			{
-				std::cout << "Input: " << input << " END\n\n";
+			{				
 				sendData(clientfds[i],response);			
 			}						
 		}
@@ -1882,11 +1892,16 @@ void Server::controller()
 
 void Server::loop()
 {
+	bool flag = true; 
 	while (true)
-	{		
+	{	
+		if(flag) std::cout << "Something\n";
 		if (reInit()) break;
+		if(flag) std::cout << "IS\n";
 		getClients(); 
 		controller();
+		if(flag) std::cout << "WRONG " << std::to_string(clientfds.size()) << "\n\n";
+		flag = false; 
 	}
 
 }
