@@ -1794,6 +1794,7 @@ bool Server::commandCenter(int cfd)
 		auto hpassword =  hashPassword(plain_text);
 		if (passwords[user] == hpassword)
 		{
+			auth_users[cfd] = user;
 			response = "+OK\r\n";
 		}
 		else 
@@ -1824,7 +1825,7 @@ bool Server::getInput(int& i)
 	}
 
 	input = buffer;
-	std::cout << "Input: " << input << " END\n\n";	
+	// std::cout << "Input: " << input << " END\n\n";	
 
 	std::transform(input.begin(), input.end(), input.begin(),
                    [](unsigned char c){ return std::tolower(c); });
